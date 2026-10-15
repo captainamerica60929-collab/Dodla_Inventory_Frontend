@@ -7,11 +7,18 @@ import { StatCardComponent } from './shared/components/stat-card/stat-card.compo
 import { BinBarComponent } from './shared/components/bin-bar/bin-bar.component';
 import { SessionService } from './core/session/session.service';
 
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter(routes)],
+      providers: [
+        provideRouter(routes),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
   });
 

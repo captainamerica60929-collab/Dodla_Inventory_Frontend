@@ -63,6 +63,19 @@ import { CommonModule } from '@angular/common';
       color: var(--text);
     }
 
+    ::ng-deep th:first-child,
+    ::ng-deep td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: var(--card);
+    }
+
+    ::ng-deep th:first-child {
+      z-index: 3;
+      background: color-mix(in srgb, var(--acc, var(--amber)) 10%, var(--bg));
+    }
+
     ::ng-deep tbody tr {
       transition: background 0.15s ease;
 

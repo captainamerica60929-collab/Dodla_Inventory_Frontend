@@ -49,6 +49,9 @@ import { CommonModule } from '@angular/common';
     .dlgw {
       width: 600px;
       max-width: 94vw;
+      max-height: 90dvh;
+      display: flex;
+      flex-direction: column;
       background: var(--card);
       border-radius: var(--radius-lg, 8px);
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
@@ -58,6 +61,7 @@ import { CommonModule } from '@angular/common';
     }
 
     .mh {
+      flex-shrink: 0;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -75,8 +79,10 @@ import { CommonModule } from '@angular/common';
         background: rgba(255, 255, 255, 0.22);
         color: #ffffff;
         border: 0;
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -93,15 +99,49 @@ import { CommonModule } from '@angular/common';
     .mb {
       padding: 18px 22px;
       color: var(--text);
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
     }
 
     .mf {
+      flex-shrink: 0;
       display: flex;
       gap: 10px;
       justify-content: flex-end;
       padding: 14px 22px;
       border-top: 1px solid var(--line);
       background: var(--card);
+    }
+
+    @media (max-width: 640px) {
+      .dlgw {
+        width: 100vw;
+        max-width: 100vw;
+        height: 100dvh;
+        max-height: 100dvh;
+        border-radius: 0;
+        border: none;
+      }
+
+      .mh {
+        padding: 14px 18px;
+      }
+
+      .mb {
+        padding: 14px 16px;
+      }
+
+      .mf {
+        padding: 12px 16px;
+        flex-wrap: wrap;
+
+        button, ::ng-deep button, ::ng-deep .btn {
+          flex: 1;
+          justify-content: center;
+        }
+      }
     }
   `],
 })

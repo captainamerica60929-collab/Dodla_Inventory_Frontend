@@ -1,17 +1,17 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { PillComponent } from '../../shared/components/pill/pill.component';
 import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
 import { DataTableComponent } from '../../shared/components/data-table/data-table.component';
 import { BinBarComponent } from '../../shared/components/bin-bar/bin-bar.component';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
-import { ModalService } from '../../shared/components/modal/modal.service';
 
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     PillComponent,
     StatCardComponent,
     DataTableComponent,
@@ -25,24 +25,24 @@ import { ModalService } from '../../shared/components/modal/modal.service';
         <h2>Warehouse Operations Overview</h2>
         <p>Live inventory tracking, FIFO enforcement, and location bin capacity.</p>
         <div class="qa">
-          <button type="button" class="qa-btn" (click)="openQuickModal('inward')">
+          <a class="qa-btn" routerLink="/transactions/inward">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>
             </svg>
             <span>Scan Inward</span>
-          </button>
-          <button type="button" class="qa-btn" (click)="openQuickModal('outward')">
+          </a>
+          <a class="qa-btn" routerLink="/transactions/outward">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 21V9M7 14l5-5 5 5M4 4h16"/>
             </svg>
             <span>Outward FIFO</span>
-          </button>
-          <button type="button" class="qa-btn" (click)="openQuickModal('transfer')">
+          </a>
+          <a class="qa-btn" routerLink="/transactions/transfer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M7 7h13M16 3l4 4-4 4M17 17H4M8 13l-4 4 4 4"/>
             </svg>
             <span>Transfer Bin</span>
-          </button>
+          </a>
         </div>
       </div>
 
@@ -87,7 +87,7 @@ import { ModalService } from '../../shared/components/modal/modal.service';
               <h3>Recent Stock Receipts</h3>
               <div class="sub">Latest inward & putaway transactions</div>
             </div>
-            <button type="button" class="btn s">View All</button>
+            <a routerLink="/transactions/grn" class="btn s">View All</a>
           </div>
           <app-data-table [headers]="['Sticker ID', 'Material', 'Batch', 'Qty', 'Location', 'Status']">
             <tr>
@@ -194,6 +194,7 @@ import { ModalService } from '../../shared/components/modal/modal.service';
         background: rgba(255, 255, 255, 0.16);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        text-decoration: none;
 
         &:hover {
           transform: translateY(-3px);
@@ -233,47 +234,4 @@ import { ModalService } from '../../shared/components/modal/modal.service';
     }
   `],
 })
-export class DashboardPageComponent {
-  private readonly modalService = inject(ModalService);
-
-  protected openQuickModal(action: string): void {
-    const dialogRef = this.modalService.open(ModalDemoDialogComponent, {
-      data: { action },
-    });
-  }
-}
-
-@Component({
-  standalone: true,
-  imports: [CommonModule, ModalComponent],
-  template: `
-    <app-modal [title]="'Quick ' + actionTitle" (closed)="close()">
-      <p style="margin-bottom: 12px;">
-        Scan or enter barcode to initiate <b>{{ actionTitle }}</b> workflow.
-      </p>
-      <div style="display: flex; gap: 8px;">
-        <input
-          type="text"
-          class="mono"
-          placeholder="Scan barcode..."
-          style="flex: 1;"
-          autofocus
-        />
-        <button type="button" class="btn a">Scan</button>
-      </div>
-
-      <div slot="footer">
-        <button type="button" class="btn" (click)="close()">Cancel</button>
-        <button type="button" class="btn p" (click)="close()">Proceed</button>
-      </div>
-    </app-modal>
-  `,
-})
-export class ModalDemoDialogComponent {
-  private readonly modalService = inject(ModalService);
-  actionTitle = 'Transaction';
-
-  close(): void {
-    this.modalService.closeAll();
-  }
-}
+export class DashboardPageComponent {}

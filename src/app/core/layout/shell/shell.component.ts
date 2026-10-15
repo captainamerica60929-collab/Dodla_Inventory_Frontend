@@ -3,11 +3,18 @@ import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { TopbarComponent } from '../topbar/topbar.component';
+import { ToastContainerComponent } from '../../components/toast-container/toast-container.component';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, SidebarComponent, TopbarComponent],
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    SidebarComponent,
+    TopbarComponent,
+    ToastContainerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-sidebar [isOpen]="sidebarOpen()" (close)="sidebarOpen.set(false)" />
@@ -18,17 +25,19 @@ import { TopbarComponent } from '../topbar/topbar.component';
         <router-outlet />
       </main>
     </div>
+
+    <app-toast-container />
   `,
   styles: [`
     :host {
       display: block;
-      min-height: 100vh;
+      min-height: 100dvh;
     }
 
     .main {
       margin-left: var(--sidebar-width, 250px);
       min-width: 0;
-      min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
       transition: margin-left 0.25s ease;

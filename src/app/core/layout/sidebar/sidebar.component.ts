@@ -2,24 +2,30 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  HostListener,
   Output,
   inject,
   input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
+import { A11yModule } from '@angular/cdk/a11y';
 import { NAVIGATION_GROUPS, SVG_ICONS } from '../navigation';
 import { SessionService } from '../../session/session.service';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink, RouterLinkActive, A11yModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <aside
       class="sb"
       [class.open]="isOpen()"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="isOpen()"
       data-tour="sidebar"
       aria-label="Main Navigation"
     >
@@ -247,11 +253,32 @@ import { SessionService } from '../../session/session.service';
 })
 export class SidebarComponent {
   private readonly session = inject(SessionService);
+  private readonly router = inject(Router);
 
   readonly isOpen = input<boolean>(false);
   @Output() readonly close = new EventEmitter<void>();
 
   protected readonly navGroups = NAVIGATION_GROUPS;
+
+  constructor() {
+    this.router.events
+      .pipe(
+        filter((e) => e instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => {
+        if (this.isOpen()) {
+          this.close.emit();
+        }
+      });
+  }
+
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.isOpen()) {
+      this.close.emit();
+    }
+  }
 
   protected footerText(): string {
     const branch = this.session.branch();
