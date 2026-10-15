@@ -1,0 +1,112 @@
+// WareTrack Design Tokens - extracted from waretrack-prototype.html
+:root {
+  // Brand Neutrals
+  --n9: #1B2430;
+  --n8: #232E3D;
+  --n7: #2D3B4F;
+
+  // Surfaces & Text (Light Theme)
+  --bg: #F3F5F7;
+  --card: #ffffff;
+  --line: #E1E6EB;
+  --text: #1B2430;
+  --dim: #5B6B7D;
+  --faint: #8A97A6;
+  --hov: #FAFBFC;
+
+  // Accents & Semantics
+  --amber: #E8A33D;
+  --amberD: #C67F1F;
+  --amberBg: #FDF3E2;
+
+  --green: #2F6F4E;
+  --greenBg: #E7F3EC;
+
+  --red: #C1443D;
+  --redBg: #FBEAE9;
+
+  --blue: #2E6BA6;
+  --blueBg: #E9F1FA;
+
+  --purple: #6B4FA3;
+  --purpleBg: #F0EBF8;
+
+  --teal: #0f9d9d;
+  --orange: #D9822B;
+
+  // Typography
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  // Radii
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-pill: 20px;
+
+  // Shadows & Elevations
+  --shadow-sm: 0 1px 2px rgba(20, 27, 36, 0.05);
+  --shadow-panel: 0 2px 12px rgba(20, 27, 36, 0.06);
+  --shadow-panel-hover: 0 6px 22px rgba(20, 27, 36, 0.1);
+  --shadow-amber: 0 3px 10px rgba(232, 163, 61, 0.35);
+  --shadow-amber-hover: 0 6px 16px rgba(232, 163, 61, 0.5);
+  --shadow-dark: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-backdrop: rgba(20, 27, 36, 0.55);
+
+  // Layout Metrics
+  --sidebar-width: 250px;
+  --topbar-height: 62px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10161d;
+    --card: #1a2330;
+    --line: #2d3b4f;
+    --text: #e6ecf1;
+    --dim: #a3b1bf;
+    --faint: #7d8c9b;
+    --hov: #202b3a;
+
+    --amberBg: #3b2d14;
+    --amberD: #f0b35a;
+    --greenBg: #16321f;
+    --green: #6fd08c;
+    --redBg: #3b1d1d;
+    --red: #f08a8a;
+    --blueBg: #16283c;
+    --blue: #7db4ea;
+    --purpleBg: #2a2140;
+    --purple: #b9a2ee;
+
+    --shadow-panel: 0 2px 12px rgba(0, 0, 0, 0.3);
+    --shadow-panel-hover: 0 6px 22px rgba(0, 0, 0, 0.45);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #10161d;
+  --card: #1a2330;
+  --line: #2d3b4f;
+  --text: #e6ecf1;
+  --dim: #a3b1bf;
+  --faint: #7d8c9b;
+  --hov: #202b3a;
+
+  --amberBg: #3b2d14;
+  --amberD: #f0b35a;
+  --greenBg: #16321f;
+  --green: #6fd08c;
+  --redBg: #3b1d1d;
+  --red: #f08a8a;
+  --blueBg: #16283c;
+  --blue: #7db4ea;
+  --purpleBg: #2a2140;
+  --purple: #b9a2ee;
+
+  --shadow-panel: 0 2px 12px rgba(0, 0, 0, 0.3);
+  --shadow-panel-hover: 0 6px 22px rgba(0, 0, 0, 0.45);
+}
