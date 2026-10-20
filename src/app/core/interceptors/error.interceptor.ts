@@ -1,6 +1,8 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
+import { AuthService } from '../auth/auth.service';
 import { NotificationService } from '../services/notification.service';
 
 export interface ProblemDetails {
@@ -15,6 +17,8 @@ export interface ProblemDetails {
 
 export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
   const notificationService = inject(NotificationService);
+  const authService = inject(AuthService);
+  const router = inject(Router);
 
   return next(req).pipe(
     catchError((error: unknown) => {
@@ -31,7 +35,7 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
             problem.traceId ||
             (problem.extensions?.['traceId'] as string | undefined);
 
-          // Check if there are ASP.NET validation "errors" dictionary
+          // Check if there is ASP.NET validation "errors" dictionary
           if (problem.errors && typeof problem.errors === 'object') {
             const errorList: string[] = [];
             for (const [field, messages] of Object.entries(problem.errors)) {
@@ -62,24 +66,33 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
           detail = error.error;
         }
 
-        // Targeted 403 rule
-        if (error.status === 403) {
-          const url = req.url.toLowerCase();
-          const isDevRestrictedEndpoint =
-            url.includes('/test') ||
-            url.includes('/preview-mapping') ||
-            url.includes('/fetch');
+        // 401 handling:
+        // Run the logout and redirect flow only when a request that carried a token gets 401.
+        // Never for POST auth/login or POST auth/change-password; show the API message instead.
+        if (error.status === 401) {
+          const hadToken = req.headers.has('Authorization');
+          const isLogin = req.url.includes('auth/login') && req.method === 'POST';
+          const isChangePassword =
+            req.url.includes('auth/change-password') && req.method === 'POST';
 
-          title = 'Access Restricted';
-          if (isDevRestrictedEndpoint) {
-            detail =
-              'Test and fetch are available only in Development until login is built';
-          } else {
-            detail = 'You do not have permission';
+          if (hadToken && !isLogin && !isChangePassword) {
+            authService.logout(router.url);
+            notificationService.showWarning(
+              'Session Expired',
+              'Please sign in again to continue.',
+            );
+            return throwError(() => error);
           }
+        }
+
+        // 403 rule: "You do not have permission"
+        if (error.status === 403) {
+          title = 'Access Restricted';
+          detail = 'You do not have permission';
         } else if (error.status === 0) {
           title = 'Network Connection Error';
-          detail = 'Could not connect to the API server. Please verify the backend is running.';
+          detail =
+            'Could not connect to the API server. Please verify the backend is running.';
         }
 
         notificationService.showError(title, detail, traceId);

@@ -14,7 +14,7 @@ export interface BranchSession {
   name: string;
 }
 
-export type UserRole = 'Admin' | 'Store Keeper' | 'Operator' | 'Viewer';
+export type UserRole = 'Admin' | 'StoreKeeper' | 'Operator' | 'Viewer';
 
 @Injectable({
   providedIn: 'root',

@@ -1,3 +1,5 @@
+import { UserRole } from '../session/session.service';
+
 export interface NavItem {
   id: string;
   label: string;
@@ -6,6 +8,7 @@ export interface NavItem {
   description: string;
   badge?: string;
   dataTour?: string;
+  allowedRoles?: UserRole[];
 }
 
 export interface NavGroup {
@@ -54,6 +57,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         route: '/masters/material',
         icon: 'box',
         description: 'Masters / Material catalog',
+        allowedRoles: ['Admin', 'StoreKeeper', 'Viewer'],
       },
       {
         id: 'loc',
@@ -61,6 +65,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         route: '/masters/location',
         icon: 'pin',
         description: 'Masters / Location bins and zones',
+        allowedRoles: ['Admin', 'StoreKeeper', 'Viewer'],
       },
       {
         id: 'emp',
@@ -68,6 +73,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         route: '/masters/employee',
         icon: 'user',
         description: 'Masters / Employee records',
+        allowedRoles: ['Admin', 'StoreKeeper', 'Viewer'],
       },
       {
         id: 'usr',
@@ -75,6 +81,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         route: '/masters/user',
         icon: 'shield',
         description: 'Masters / User accounts and roles',
+        allowedRoles: ['Admin'],
       },
       {
         id: 'branch',
@@ -82,6 +89,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         route: '/masters/branch',
         icon: 'building',
         description: 'Masters / Warehouse branches',
+        allowedRoles: ['Admin', 'StoreKeeper', 'Viewer'],
       },
       {
         id: 'api-credential',
@@ -89,6 +97,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         route: '/masters/api-credential',
         icon: 'key',
         description: 'Masters / SAP API and service credentials',
+        allowedRoles: ['Admin'],
       },
     ],
   },
@@ -102,6 +111,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         route: '/transactions/grn',
         icon: 'doc',
         description: 'Transactions / GRN from SAP and barcode printing',
+        allowedRoles: ['Admin', 'StoreKeeper'],
       },
       {
         id: 'in',
@@ -109,6 +119,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         route: '/transactions/inward',
         icon: 'inw',
         description: 'Transactions / Inward scan and bin mapping',
+        allowedRoles: ['Admin', 'StoreKeeper', 'Operator'],
       },
       {
         id: 'out',
@@ -116,6 +127,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         route: '/transactions/outward',
         icon: 'out',
         description: 'Transactions / Outward FIFO dispatch',
+        allowedRoles: ['Admin', 'StoreKeeper', 'Operator'],
       },
       {
         id: 'tr',
@@ -123,6 +135,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         route: '/transactions/transfer',
         icon: 'swap',
         description: 'Transactions / Move stock between bins',
+        allowedRoles: ['Admin', 'StoreKeeper', 'Operator'],
       },
       {
         id: 'accept',
@@ -130,6 +143,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         route: '/transactions/accept',
         icon: 'check',
         description: 'Transactions / User acceptance verification',
+        allowedRoles: ['Admin', 'StoreKeeper', 'Operator'],
       },
     ],
   },
@@ -143,6 +157,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         route: '/reports',
         icon: 'rep',
         description: 'Stock, FIFO, location and movement reports',
+        allowedRoles: ['Admin', 'StoreKeeper', 'Viewer'],
       },
     ],
   },

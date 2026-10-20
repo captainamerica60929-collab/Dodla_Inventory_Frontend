@@ -2,9 +2,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
+import { SessionService } from '../../../core/session/session.service';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -44,26 +46,28 @@ import { NotificationService } from '../../../core/services/notification.service
             Warehouse branches, storage facilities, and plant designations
           </div>
         </div>
-        <button
-          type="button"
-          class="btn a s"
-          (click)="openAddModal()"
-          aria-label="Add new warehouse branch"
-        >
-          + Add Branch
-        </button>
+        @if (isAdmin()) {
+          <button
+            type="button"
+            class="btn a s"
+            (click)="openAddModal()"
+            aria-label="Add new warehouse branch"
+          >
+            + Add Branch
+          </button>
+        }
       </div>
 
       @if (isLoading()) {
         <div class="pb loading-text">Loading branch records...</div>
       } @else {
         <app-data-table
-          [headers]="['Code', 'Name', 'Plant Code', 'Status', 'Actions']"
+          [headers]="isAdmin() ? ['Code', 'Name', 'Plant Code', 'Status', 'Actions'] : ['Code', 'Name', 'Plant Code', 'Status']"
           [isEmpty]="branches().length === 0"
           emptyText="No branches found."
         >
           @for (branch of branches(); track branch.id) {
-            <tr tabindex="0" (keydown.enter)="openEditModal(branch)">
+            <tr tabindex="0" (keydown.enter)="isAdmin() ? openEditModal(branch) : null">
               <td class="mono">
                 <b>{{ branch.code }}</b>
               </td>
@@ -81,25 +85,27 @@ import { NotificationService } from '../../../core/services/notification.service
                   [text]="branch.isActive ? 'Active' : 'Inactive'"
                 />
               </td>
-              <td class="action-cell">
-                <button
-                  type="button"
-                  class="btn s ghost"
-                  (click)="openEditModal(branch)"
-                  title="Edit Branch"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  class="btn s ghost"
-                  [ngClass]="branch.isActive ? 'text-danger' : 'text-success'"
-                  (click)="toggleStatus(branch)"
-                  [title]="branch.isActive ? 'Deactivate Branch' : 'Activate Branch'"
-                >
-                  {{ branch.isActive ? 'Deactivate' : 'Activate' }}
-                </button>
-              </td>
+              @if (isAdmin()) {
+                <td class="action-cell">
+                  <button
+                    type="button"
+                    class="btn s ghost"
+                    (click)="openEditModal(branch)"
+                    title="Edit Branch"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="btn s ghost"
+                    [ngClass]="branch.isActive ? 'text-danger' : 'text-success'"
+                    (click)="toggleStatus(branch)"
+                    [title]="branch.isActive ? 'Deactivate Branch' : 'Activate Branch'"
+                  >
+                    {{ branch.isActive ? 'Deactivate' : 'Activate' }}
+                  </button>
+                </td>
+              }
             </tr>
           }
         </app-data-table>
@@ -326,7 +332,10 @@ import { NotificationService } from '../../../core/services/notification.service
 export class BranchPageComponent implements OnInit {
   private readonly branchService = inject(BranchService);
   private readonly notificationService = inject(NotificationService);
+  private readonly session = inject(SessionService);
   private readonly fb = inject(FormBuilder);
+
+  readonly isAdmin = computed(() => this.session.role() === 'Admin');
 
   readonly branches = signal<BranchDto[]>([]);
   readonly isLoading = signal<boolean>(false);
@@ -366,11 +375,13 @@ export class BranchPageComponent implements OnInit {
   }
 
   openAddModal(): void {
+    if (!this.isAdmin()) return;
     this.addForm.reset();
     this.showAddModal.set(true);
   }
 
   openEditModal(branch: BranchDto): void {
+    if (!this.isAdmin()) return;
     this.selectedBranch.set(branch);
     this.editForm.setValue({
       name: branch.name,
@@ -442,6 +453,7 @@ export class BranchPageComponent implements OnInit {
   }
 
   toggleStatus(branch: BranchDto): void {
+    if (!this.isAdmin()) return;
     const dto: UpdateBranchDto = {
       name: branch.name,
       plantCode: branch.plantCode,

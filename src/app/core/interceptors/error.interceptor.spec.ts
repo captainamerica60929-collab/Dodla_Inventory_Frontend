@@ -1,20 +1,47 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpClient,
+  HttpHeaders,
+  provideHttpClient,
+  withInterceptors,
+} from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
+import { Router } from '@angular/router';
 import { vi } from 'vitest';
 import { httpErrorInterceptor } from './error.interceptor';
+import { AuthService } from '../auth/auth.service';
 import { NotificationService } from '../services/notification.service';
 
 describe('httpErrorInterceptor', () => {
   let http: HttpClient;
   let httpTesting: HttpTestingController;
   let notificationService: NotificationService;
+  let authService: AuthService;
   let showErrorSpy: ReturnType<typeof vi.spyOn>;
+  let showWarningSpy: ReturnType<typeof vi.spyOn>;
+  let logoutSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
         NotificationService,
+        {
+          provide: Router,
+          useValue: {
+            url: '/masters/material',
+            navigate: vi.fn(),
+          },
+        },
+        {
+          provide: AuthService,
+          useValue: {
+            token: vi.fn().mockReturnValue('mock-token'),
+            logout: vi.fn(),
+          },
+        },
         provideHttpClient(withInterceptors([httpErrorInterceptor])),
         provideHttpClientTesting(),
       ],
@@ -23,7 +50,11 @@ describe('httpErrorInterceptor', () => {
     http = TestBed.inject(HttpClient);
     httpTesting = TestBed.inject(HttpTestingController);
     notificationService = TestBed.inject(NotificationService);
+    authService = TestBed.inject(AuthService);
+
     showErrorSpy = vi.spyOn(notificationService, 'showError');
+    showWarningSpy = vi.spyOn(notificationService, 'showWarning');
+    logoutSpy = vi.spyOn(authService, 'logout');
   });
 
   afterEach(() => {
@@ -55,44 +86,8 @@ describe('httpErrorInterceptor', () => {
     );
   });
 
-  it('should show specific message for 403 on /test endpoint', () => {
-    http.post('/api/api-credentials/1/test', {}).subscribe({
-      next: () => {
-        throw new Error('should have failed with 403');
-      },
-      error: () => {
-        expect(showErrorSpy).toHaveBeenCalledWith(
-          'Access Restricted',
-          'Test and fetch are available only in Development until login is built',
-          undefined,
-        );
-      },
-    });
-
-    const req = httpTesting.expectOne('/api/api-credentials/1/test');
-    req.flush({ title: 'Forbidden', detail: 'Dev restricted' }, { status: 403, statusText: 'Forbidden' });
-  });
-
-  it('should show specific message for 403 on /preview-mapping endpoint', () => {
-    http.post('/api/api-credentials/1/preview-mapping', {}).subscribe({
-      next: () => {
-        throw new Error('should have failed with 403');
-      },
-      error: () => {
-        expect(showErrorSpy).toHaveBeenCalledWith(
-          'Access Restricted',
-          'Test and fetch are available only in Development until login is built',
-          undefined,
-        );
-      },
-    });
-
-    const req = httpTesting.expectOne('/api/api-credentials/1/preview-mapping');
-    req.flush({}, { status: 403, statusText: 'Forbidden' });
-  });
-
-  it('should show generic message for 403 on other endpoints', () => {
-    http.get('/api/branches').subscribe({
+  it('should show "You do not have permission" for 403 responses', () => {
+    http.get('/api/masters/user').subscribe({
       next: () => {
         throw new Error('should have failed with 403');
       },
@@ -105,70 +100,72 @@ describe('httpErrorInterceptor', () => {
       },
     });
 
-    const req = httpTesting.expectOne('/api/branches');
-    req.flush({}, { status: 403, statusText: 'Forbidden' });
+    const req = httpTesting.expectOne('/api/masters/user');
+    req.flush({ title: 'Forbidden' }, { status: 403, statusText: 'Forbidden' });
   });
 
-  it('should format ASP.NET validation errors object (up to 5 messages plus traceId)', () => {
-    http.put('/api/api-credentials/1/mappings', []).subscribe({
+  it('should trigger logout flow on 401 when request carried an Authorization token', () => {
+    const headers = new HttpHeaders({ Authorization: 'Bearer test-token' });
+
+    http.get('/api/protected-resource', { headers }).subscribe({
       next: () => {
-        throw new Error('should have failed with 400');
+        throw new Error('should have failed with 401');
       },
-      error: () => {
-        expect(showErrorSpy).toHaveBeenCalledWith(
-          'One or more validation errors occurred.',
-          expect.stringContaining('$[0].targetColumn: The JSON value could not be converted'),
-          '00-trace-abc-00',
+      error: (err) => {
+        expect(err.status).toBe(401);
+        expect(logoutSpy).toHaveBeenCalledWith('/masters/material');
+        expect(showWarningSpy).toHaveBeenCalledWith(
+          'Session Expired',
+          'Please sign in again to continue.',
         );
       },
     });
 
-    const req = httpTesting.expectOne('/api/api-credentials/1/mappings');
-    req.flush(
-      {
-        title: 'One or more validation errors occurred.',
-        status: 400,
-        errors: {
-          '$[0].targetColumn': ['The JSON value could not be converted to TargetColumn.'],
-          'mappings': ['The mappings field is required.'],
-        },
-        traceId: '00-trace-abc-00',
+    const req = httpTesting.expectOne('/api/protected-resource');
+    req.flush({ detail: 'Token expired' }, { status: 401, statusText: 'Unauthorized' });
+  });
+
+  it('should NOT trigger logout flow on 401 for POST auth/login and should show API message', () => {
+    http.post('/api/auth/login', { username: 'test', password: 'wrong' }).subscribe({
+      next: () => {
+        throw new Error('should have failed with 401');
       },
-      { status: 400, statusText: 'Bad Request' },
+      error: () => {
+        expect(logoutSpy).not.toHaveBeenCalled();
+        expect(showErrorSpy).toHaveBeenCalledWith(
+          'Unauthorized',
+          'Invalid credentials.',
+          undefined,
+        );
+      },
+    });
+
+    const req = httpTesting.expectOne('/api/auth/login');
+    req.flush(
+      { title: 'Unauthorized', detail: 'Invalid credentials.' },
+      { status: 401, statusText: 'Unauthorized' },
     );
   });
 
-  it('should format ASP.NET validation errors capping at 5 and appending "and N more"', () => {
-    http.post('/api/test-validation', {}).subscribe({
+  it('should NOT trigger logout flow on 401 for POST auth/change-password and should show API message', () => {
+    http.post('/api/auth/change-password', { currentPassword: 'wrong', newPassword: 'abc' }).subscribe({
       next: () => {
-        throw new Error('should have failed with 400');
+        throw new Error('should have failed with 401');
       },
       error: () => {
+        expect(logoutSpy).not.toHaveBeenCalled();
         expect(showErrorSpy).toHaveBeenCalledWith(
-          'Validation Failed',
-          expect.stringContaining('and 2 more'),
-          'trace-xyz-999',
+          'Unauthorized',
+          'Current password is incorrect.',
+          undefined,
         );
       },
     });
 
-    const req = httpTesting.expectOne('/api/test-validation');
+    const req = httpTesting.expectOne('/api/auth/change-password');
     req.flush(
-      {
-        title: 'Validation Failed',
-        status: 400,
-        errors: {
-          field1: ['Error 1'],
-          field2: ['Error 2'],
-          field3: ['Error 3'],
-          field4: ['Error 4'],
-          field5: ['Error 5'],
-          field6: ['Error 6'],
-          field7: ['Error 7'],
-        },
-        traceId: 'trace-xyz-999',
-      },
-      { status: 400, statusText: 'Bad Request' },
+      { title: 'Unauthorized', detail: 'Current password is incorrect.' },
+      { status: 401, statusText: 'Unauthorized' },
     );
   });
 });

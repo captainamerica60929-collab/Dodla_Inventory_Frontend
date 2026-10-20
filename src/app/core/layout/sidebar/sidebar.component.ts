@@ -4,6 +4,7 @@ import {
   EventEmitter,
   HostListener,
   Output,
+  computed,
   inject,
   input,
 } from '@angular/core';
@@ -40,7 +41,7 @@ import { SessionService } from '../../session/session.service';
       <div class="scan-rule"></div>
 
       <nav class="nv">
-        @for (grp of navGroups; track grp.groupName) {
+        @for (grp of filteredNavGroups(); track grp.groupName) {
           <div class="gl" [attr.data-tour]="grp.dataTour || null">
             {{ grp.groupName }}
           </div>
@@ -258,7 +259,15 @@ export class SidebarComponent {
   readonly isOpen = input<boolean>(false);
   @Output() readonly close = new EventEmitter<void>();
 
-  protected readonly navGroups = NAVIGATION_GROUPS;
+  protected readonly filteredNavGroups = computed(() => {
+    const role = this.session.role();
+    return NAVIGATION_GROUPS.map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => !item.allowedRoles || (role && item.allowedRoles.includes(role)),
+      ),
+    })).filter((group) => group.items.length > 0);
+  });
 
   constructor() {
     this.router.events
