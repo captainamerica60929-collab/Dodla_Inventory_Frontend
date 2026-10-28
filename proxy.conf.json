@@ -1,6 +1,6 @@
 {
   "/api": {
-    "target": "http://localhost:5114",
+    "target": "https://dodladairyapi.genuineitsolution.com",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"

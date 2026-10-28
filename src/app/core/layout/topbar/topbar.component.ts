@@ -16,6 +16,7 @@ import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
 import { SessionService } from '../../session/session.service';
 import { ThemeService } from '../../theme/theme.service';
+import { TourService } from '../../tour/tour.service';
 import { NAVIGATION_GROUPS, NavItem } from '../navigation';
 
 @Component({
@@ -51,13 +52,15 @@ import { NAVIGATION_GROUPS, NavItem } from '../navigation';
           <span>{{ branchText() }}</span>
         </div>
 
-        <!-- Take a tour placeholder -->
+        <!-- Take a tour button -->
         <button
           type="button"
           class="btn s ghost tour-btn"
-          disabled
+          [disabled]="!tourService.hasCurrentTour()"
+          (click)="tourService.startCurrentTour()"
           data-tour="take-tour-btn"
-          title="Guided tours will be enabled with driver.js"
+          [title]="tourService.hasCurrentTour() ? 'Take a tour of this screen' : 'No tour available for this screen'"
+          aria-label="Take a tour"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
@@ -446,6 +449,7 @@ export class TopbarComponent {
   private readonly authService = inject(AuthService);
   protected readonly session = inject(SessionService);
   protected readonly themeService = inject(ThemeService);
+  protected readonly tourService = inject(TourService);
 
   @Output() readonly toggleSidebar = new EventEmitter<void>();
 

@@ -15,6 +15,9 @@
 // Angular CDK overlay styling
 @import '@angular/cdk/overlay-prebuilt.css';
 
+// driver.js onboarding tours styling
+@import 'driver.js/dist/driver.css';
+
 // Global resets
 *, *::before, *::after {
   box-sizing: border-box;
@@ -374,4 +377,78 @@ input, select, textarea {
   .col-status { width: 90px; }
   .col-msg { max-width: 320px; }
   .row-err { background: rgba(193,68,61,0.04); }
+}
+
+// WareTrack driver.js popover theme
+.driver-popover.wt-tour {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+  padding: 16px;
+  font-family: var(--font-sans);
+
+  .driver-popover-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .driver-popover-description {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--dim);
+  }
+
+  .driver-popover-progress-text {
+    font-size: 11.5px;
+    color: var(--faint);
+    font-weight: 600;
+  }
+
+  .driver-popover-footer button {
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    transition: all 0.15s ease;
+  }
+
+  .driver-popover-next-btn {
+    background: var(--amber) !important;
+    color: #141b24 !important;
+    border: 1px solid var(--amber) !important;
+    text-shadow: none !important;
+
+    &:hover {
+      background: var(--amberD) !important;
+      color: #ffffff !important;
+    }
+  }
+
+  .driver-popover-prev-btn, .driver-popover-close-btn {
+    background: var(--card) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--line) !important;
+
+    &:hover {
+      background: var(--bg) !important;
+    }
+  }
+
+  .driver-popover-arrow-side-top {
+    border-top-color: var(--card);
+  }
+  .driver-popover-arrow-side-bottom {
+    border-bottom-color: var(--card);
+  }
+  .driver-popover-arrow-side-left {
+    border-left-color: var(--card);
+  }
+  .driver-popover-arrow-side-right {
+    border-right-color: var(--card);
+  }
 }

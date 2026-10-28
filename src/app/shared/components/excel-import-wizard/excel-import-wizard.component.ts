@@ -32,7 +32,7 @@ import { PillComponent } from '../pill/pill.component';
   imports: [CommonModule, FormsModule, ModalComponent, PillComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="import-modal-overlay" role="dialog" aria-modal="true" [attr.aria-label]="config.title">
+    <div class="import-modal-overlay" role="dialog" aria-modal="true" [attr.aria-label]="config.title" data-tour="grn-excel-import">
       <app-modal [title]="config.title" (closed)="onClose()">
         <div class="wizard-container">
           <!-- Wizard Stepper Indicator -->
@@ -84,37 +84,39 @@ import { PillComponent } from '../pill/pill.component';
               </div>
 
               <!-- Mode Selector -->
-              <div class="mode-selector-group">
-                <label class="group-label">Import Mode</label>
-                <div class="mode-options">
-                  <label class="mode-option" [class.selected]="selectedMode() === 'CreateOnly'">
-                    <input
-                      type="radio"
-                      name="importMode"
-                      value="CreateOnly"
-                      [checked]="selectedMode() === 'CreateOnly'"
-                      (change)="onModeChange('CreateOnly')"
-                    />
-                    <div class="mode-text">
-                      <div class="mode-name">Create new only</div>
-                      <div class="mode-desc">Creates new items and skips any existing records.</div>
-                    </div>
-                  </label>
-                  <label class="mode-option" [class.selected]="selectedMode() === 'Upsert'">
-                    <input
-                      type="radio"
-                      name="importMode"
-                      value="Upsert"
-                      [checked]="selectedMode() === 'Upsert'"
-                      (change)="onModeChange('Upsert')"
-                    />
-                    <div class="mode-text">
-                      <div class="mode-name">Update existing</div>
-                      <div class="mode-desc">Creates new items and updates matching existing records.</div>
-                    </div>
-                  </label>
+              @if (!config.hideModeSelector) {
+                <div class="mode-selector-group">
+                  <label class="group-label">Import Mode</label>
+                  <div class="mode-options">
+                    <label class="mode-option" [class.selected]="selectedMode() === 'CreateOnly'">
+                      <input
+                        type="radio"
+                        name="importMode"
+                        value="CreateOnly"
+                        [checked]="selectedMode() === 'CreateOnly'"
+                        (change)="onModeChange('CreateOnly')"
+                      />
+                      <div class="mode-text">
+                        <div class="mode-name">Create new only</div>
+                        <div class="mode-desc">Creates new items and skips any existing records.</div>
+                      </div>
+                    </label>
+                    <label class="mode-option" [class.selected]="selectedMode() === 'Upsert'">
+                      <input
+                        type="radio"
+                        name="importMode"
+                        value="Upsert"
+                        [checked]="selectedMode() === 'Upsert'"
+                        (change)="onModeChange('Upsert')"
+                      />
+                      <div class="mode-text">
+                        <div class="mode-name">Update existing</div>
+                        <div class="mode-desc">Creates new items and updates matching existing records.</div>
+                      </div>
+                    </label>
+                  </div>
                 </div>
-              </div>
+              }
 
               <!-- File Drag & Drop Zone -->
               <div
@@ -210,19 +212,15 @@ import { PillComponent } from '../pill/pill.component';
                   </div>
                 }
 
-                <!-- Summary Badges -->
+                <!-- Summary Badges (Total, Valid, Errors) -->
                 <div class="metrics-grid">
                   <div class="metric-card">
                     <div class="metric-val">{{ res.total }}</div>
-                    <div class="metric-lbl">Total Rows</div>
+                    <div class="metric-lbl">Total</div>
                   </div>
                   <div class="metric-card success">
-                    <div class="metric-val">{{ res.newCount }}</div>
-                    <div class="metric-lbl">New to Create</div>
-                  </div>
-                  <div class="metric-card warning">
-                    <div class="metric-val">{{ res.existsCount }}</div>
-                    <div class="metric-lbl">{{ selectedMode() === 'Upsert' ? 'To Update' : 'Exists (Skip)' }}</div>
+                    <div class="metric-val">{{ validCount() }}</div>
+                    <div class="metric-lbl">Valid</div>
                   </div>
                   <div class="metric-card danger" [class.has-errors]="res.errorCount > 0">
                     <div class="metric-val">{{ res.errorCount }}</div>
@@ -257,16 +255,21 @@ import { PillComponent } from '../pill/pill.component';
                         <thead>
                           <tr>
                             <th class="col-num">#</th>
-                            <th class="col-code">Code</th>
+                            <th class="col-code">{{ config.resourceName === 'GRN' ? 'Part Code' : 'Code' }}</th>
                             <th class="col-status">Status</th>
                             <th class="col-msg">Validation Message</th>
                           </tr>
                         </thead>
                         <tbody>
                           @for (r of pagedRows(); track r.rowNumber) {
-                            <tr [class.row-err]="r.status === 'Error'">
+                            <tr [class.row-err]="r.status === 'Error'" [class.partcode-master-err]="isPartCodeMasterError(r)">
                               <td class="col-num mono">{{ r.rowNumber }}</td>
-                              <td class="col-code mono"><b>{{ r.code }}</b></td>
+                              <td class="col-code mono">
+                                <b>{{ r.code }}</b>
+                                @if (isPartCodeMasterError(r)) {
+                                  <span class="partcode-err-badge">PartCode Master Mismatch</span>
+                                }
+                              </td>
                               <td class="col-status">
                                 <app-pill
                                   [variant]="getStatusVariant(r.status)"
@@ -554,6 +557,22 @@ import { PillComponent } from '../pill/pill.component';
       .footer-right { display: flex; gap: 8px; margin-left: auto; }
       @media (max-width: 640px) { flex-direction: column; .footer-left, .footer-right { width: 100%; button { flex: 1; } } }
     }
+    .partcode-master-err {
+      background: rgba(193, 68, 61, 0.08) !important;
+      border-left: 3px solid var(--red, #C1443D);
+
+      .partcode-err-badge {
+        display: inline-block;
+        margin-left: 8px;
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--red);
+        background: var(--redBg);
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid rgba(193, 68, 61, 0.25);
+      }
+    }
     .touch-btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
     .btn-primary { background: var(--blue, #2563eb) !important; color: #fff !important; }
   `],
@@ -561,6 +580,20 @@ import { PillComponent } from '../pill/pill.component';
 export class ExcelImportWizardComponent implements OnDestroy {
   private readonly excelService = inject(ExcelImportService);
   private readonly notificationService = inject(NotificationService);
+
+  isPartCodeMasterError(row: ImportRowResult): boolean {
+    if (row.status !== 'Error') return false;
+    const msg = (row.message || '').toLowerCase();
+    const code = (row.code || '').toLowerCase();
+    return (
+      msg.includes('part') ||
+      msg.includes('material') ||
+      msg.includes('master') ||
+      code.includes('unknown') ||
+      code.includes('invalid') ||
+      row.status === 'Error'
+    );
+  }
 
   @Input({ required: true }) config!: ImportWizardConfig;
   @Output() closed = new EventEmitter<void>();

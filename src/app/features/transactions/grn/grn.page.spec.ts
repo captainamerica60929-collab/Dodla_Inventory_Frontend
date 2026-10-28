@@ -7,6 +7,7 @@ import { GrnPageComponent } from './grn.page';
 import { ApiCredentialService } from '../../../core/api/api-credential.service';
 import { GrnResponseService } from '../../../core/api/grn-response.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { SessionService } from '../../../core/session/session.service';
 
 describe('GrnPageComponent', () => {
   let component: GrnPageComponent;
@@ -14,6 +15,7 @@ describe('GrnPageComponent', () => {
   let grnService: GrnResponseService;
   let credService: ApiCredentialService;
   let notificationService: NotificationService;
+  let sessionService: SessionService;
 
   const validBatchGuid = 'cabbf046-c7a0-4ead-ad5b-f554ff72c85f';
 
@@ -26,6 +28,7 @@ describe('GrnPageComponent', () => {
         GrnResponseService,
         ApiCredentialService,
         NotificationService,
+        SessionService,
       ],
     }).compileComponents();
 
@@ -34,6 +37,7 @@ describe('GrnPageComponent', () => {
     grnService = TestBed.inject(GrnResponseService);
     credService = TestBed.inject(ApiCredentialService);
     notificationService = TestBed.inject(NotificationService);
+    sessionService = TestBed.inject(SessionService);
 
     // Mock initial list queries to prevent uncaught network calls
     vi.spyOn(credService, 'getAll').mockReturnValue(of([]));
@@ -165,6 +169,61 @@ describe('GrnPageComponent', () => {
           fetchBatchId: validBatchGuid,
         }),
       );
+    });
+  });
+
+  describe('Excel Import Wizard & Role Protection', () => {
+    it('should allow import only for Admin and StoreKeeper roles', () => {
+      sessionService.setRole('Admin');
+      expect(component.canImportGrn()).toBe(true);
+
+      sessionService.setRole('StoreKeeper');
+      expect(component.canImportGrn()).toBe(true);
+
+      sessionService.setRole('Operator');
+      expect(component.canImportGrn()).toBe(false);
+
+      sessionService.setRole('Viewer');
+      expect(component.canImportGrn()).toBe(false);
+    });
+
+    it('should open and close the Excel import wizard modal', () => {
+      expect(component.showImportWizard()).toBe(false);
+
+      component.openImportWizard();
+      expect(component.showImportWizard()).toBe(true);
+
+      component.closeImportWizard();
+      expect(component.showImportWizard()).toBe(false);
+    });
+
+    it('should handle import completion, show success toast and reload table', () => {
+      const notifySpy = vi.spyOn(notificationService, 'showSuccess');
+      const getPagedSpy = vi.spyOn(grnService, 'getPaged').mockReturnValue(
+        of({ items: [], total: 0, page: 1, pageSize: 50 }),
+      );
+
+      component.openImportWizard();
+
+      const mockResult = {
+        total: 10,
+        newCount: 8,
+        existsCount: 0,
+        errorCount: 2,
+        imported: 8,
+        updated: 0,
+        skipped: 2,
+        rows: [],
+      };
+
+      component.onGrnImported(mockResult);
+
+      expect(component.showImportWizard()).toBe(false);
+      expect(notifySpy).toHaveBeenCalledWith(
+        'GRN Import Completed',
+        expect.stringContaining('8'),
+      );
+      expect(getPagedSpy).toHaveBeenCalled();
     });
   });
 });

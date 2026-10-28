@@ -19,6 +19,11 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { DataTableComponent } from '../../../shared/components/data-table/data-table.component';
 import { PillComponent } from '../../../shared/components/pill/pill.component';
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
+import { ExcelImportWizardComponent } from '../../../shared/components/excel-import-wizard/excel-import-wizard.component';
+import {
+  ImportResultDto,
+  ImportWizardConfig,
+} from '../../../core/api/excel-import.service';
 import {
   ApiCredentialDto,
   ApiCredentialService,
@@ -30,6 +35,7 @@ import {
   GrnResponseService,
 } from '../../../core/api/grn-response.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { SessionService } from '../../../core/session/session.service';
 
 const PLANT_REGEX = /^[A-Za-z0-9_-]{1,10}$/;
 const GUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
@@ -44,6 +50,7 @@ const GUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}
     DataTableComponent,
     PillComponent,
     ModalComponent,
+    ExcelImportWizardComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -186,10 +193,25 @@ const GUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}
             </div>
           </div>
           <div class="header-actions">
+            @if (canImportGrn()) {
+              <button
+                type="button"
+                class="btn s a touch-btn import-grn-btn"
+                data-tour="grn-excel-import"
+                (click)="openImportWizard()"
+              >
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Import GRN from Excel
+              </button>
+            }
             <!-- Disabled Print Sticker Placeholder -->
             <button
               type="button"
-              class="btn s"
+              class="btn s touch-btn"
               disabled
               title="Barcode sticker printing will be available in the next release"
             >
@@ -455,6 +477,15 @@ const GUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}
         </app-modal>
       </div>
     }
+
+    <!-- Excel Import Wizard Modal -->
+    @if (showImportWizard()) {
+      <app-excel-import-wizard
+        [config]="grnImportConfig"
+        (closed)="closeImportWizard()"
+        (imported)="onGrnImported($event)"
+      />
+    }
   `,
   styles: [`
     :host {
@@ -576,6 +607,13 @@ const GUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}
       font-size: 11.5px;
       font-weight: 600;
       color: var(--faint);
+    }
+
+    .touch-btn {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .batch-actions {
@@ -778,8 +816,41 @@ export class GrnPageComponent implements OnInit {
   private readonly credService = inject(ApiCredentialService);
   private readonly grnService = inject(GrnResponseService);
   private readonly notificationService = inject(NotificationService);
+  private readonly session = inject(SessionService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+
+  readonly canImportGrn = computed(() => {
+    const role = this.session.role();
+    return role === 'Admin' || role === 'StoreKeeper';
+  });
+
+  readonly showImportWizard = signal<boolean>(false);
+  readonly grnImportConfig: ImportWizardConfig = {
+    title: 'Import Goods Receipt Notes from Excel',
+    resourceName: 'GRN',
+    templateUrl: '/api/grn/import-template',
+    importUrl: '/api/grn/import',
+    templateFileName: 'GRN_Import_Template.xlsx',
+    hideModeSelector: true,
+  };
+
+  openImportWizard(): void {
+    this.showImportWizard.set(true);
+  }
+
+  closeImportWizard(): void {
+    this.showImportWizard.set(false);
+  }
+
+  onGrnImported(result: ImportResultDto): void {
+    this.notificationService.showSuccess(
+      'GRN Import Completed',
+      `Successfully ingested ${result.imported} GRN records into landing ledger.`,
+    );
+    this.closeImportWizard();
+    this.loadGrnTable();
+  }
 
   // Credentials
   readonly credentials = signal<ApiCredentialDto[]>([]);
