@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WareTrack WMS · GRN to FIFO</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--n9:#1B2430;--n8:#232E3D;--n7:#2D3B4F;--bg:#F3F5F7;--card:#fff;--line:#E1E6EB;--text:#1B2430;--dim:#5B6B7D;--faint:#8A97A6;--hov:#FAFBFC;
+--amber:#E8A33D;--amberD:#C67F1F;--amberBg:#FDF3E2;--green:#2F6F4E;--greenBg:#E7F3EC;--red:#C1443D;--redBg:#FBEAE9;--blue:#2E6BA6;--blueBg:#E9F1FA;--purple:#6B4FA3;--purpleBg:#F0EBF8;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161d;--card:#1a2330;--line:#2d3b4f;--text:#e6ecf1;--dim:#a3b1bf;--faint:#7d8c9b;--hov:#202b3a;--amberBg:#3b2d14;--amberD:#f0b35a;--greenBg:#16321f;--green:#6fd08c;--redBg:#3b1d1d;--red:#f08a8a;--blueBg:#16283c;--blue:#7db4ea;--purpleBg:#2a2140;--purple:#b9a2ee}}
+:root[data-theme="dark"]{--bg:#10161d;--card:#1a2330;--line:#2d3b4f;--text:#e6ecf1;--dim:#a3b1bf;--faint:#7d8c9b;--hov:#202b3a;--amberBg:#3b2d14;--amberD:#f0b35a;--greenBg:#16321f;--green:#6fd08c;--redBg:#3b1d1d;--red:#f08a8a;--blueBg:#16283c;--blue:#7db4ea;--purpleBg:#2a2140;--purple:#b9a2ee}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.5 Inter,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px}
+button,input,select{font:inherit;color:var(--text)}button{cursor:pointer}
+.scan-rule{height:3px;background:repeating-linear-gradient(90deg,var(--amber) 0 10px,transparent 10px 18px)}
+.sb{width:250px;background:var(--n9);color:#C9D3DE;position:fixed;top:0;left:0;bottom:0;z-index:40;display:flex;flex-direction:column;transition:transform .25s}
+.brand{display:flex;gap:10px;align-items:center;padding:20px 18px 16px;border-bottom:1px solid var(--n7)}
+.mark{width:36px;height:36px;border-radius:6px;background:linear-gradient(135deg,var(--amber),var(--amberD));display:flex;align-items:center;justify-content:center;font-weight:800;color:#141B24}
+.brand b{display:block;color:#fff;font-size:15px}.brand small{font-size:10.5px;color:#8CA0B4}
+.nv{flex:1;overflow-y:auto;padding:10px}
+.gl{font-size:10.5px;font-weight:600;color:#6D8098;letter-spacing:.6px;padding:14px 10px 6px}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:4px;color:#B7C3D1;font-weight:500;font-size:13.4px;position:relative;margin-bottom:1px;cursor:pointer;border:0;background:none;width:100%;text-align:left}
+.ni:hover{background:var(--n8);color:#fff}.ni.on{background:var(--n7);color:#fff}
+.ni.on::before{content:'';position:absolute;left:-10px;top:8px;bottom:8px;width:3px;background:var(--amber);border-radius:2px}
+.ni svg{width:17px;height:17px;flex-shrink:0}.ni .bd{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px}
+.sf{padding:14px 18px;border-top:1px solid var(--n7);font-size:11px;color:#65778C}
+.main{margin-left:250px;min-width:0}
+.top{height:62px;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 22px;position:sticky;top:0;z-index:30}
+.top h1{font-size:17px;font-weight:700}.top small{display:block;font-size:11.5px;color:var(--faint)}
+.mt{display:none;border:0;background:none;font-size:22px}
+.user{margin-left:auto;display:flex;gap:9px;align-items:center}
+.av{width:32px;height:32px;border-radius:50%;background:var(--blueBg);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+.ct{padding:22px 26px 60px}
+.sh{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.sh h2{font-size:19px;font-weight:700}.sh p{font-size:12.5px;color:var(--faint)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8.5px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:13px}
+.btn:hover{background:var(--bg)}.btn.p{background:var(--n9);color:#fff;border-color:var(--n9)}.btn.p:hover{background:var(--n8)}
+.btn.a{background:var(--amber);color:#141B24;border-color:var(--amber)}.btn.a:hover{background:var(--amberD);color:#fff}
+.btn.s{padding:5px 10px;font-size:11.5px;border-radius:6px}.btn svg{width:14px;height:14px}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.sc{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;border-top:3px solid var(--c)}
+.sc .t{display:flex;justify-content:space-between;align-items:flex-start}
+.sl{font-size:11.5px;color:var(--faint);font-weight:600}
+.si{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--cb);color:var(--c)}.si svg{width:17px;height:17px}
+.sv{font-size:26px;font-weight:800;margin-top:8px;letter-spacing:-.5px}.ss{font-size:11.5px;color:var(--faint)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:16px;min-width:0}
+.ph{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.ph h3{font-size:14.5px;font-weight:700}.ph .sub{font-size:11.5px;color:var(--faint);font-weight:400}
+.pb{padding:16px 18px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.8px}
+th{text-align:left;padding:9px 12px;background:var(--bg);color:var(--dim);font-weight:600;font-size:11px;letter-spacing:.3px;white-space:nowrap;border-bottom:1px solid var(--line)}
+td{padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr:hover{background:var(--hov)}tr:last-child td{border-bottom:0}
+tr.nx td{background:var(--amberBg)}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.Open,.pa{background:var(--amberBg);color:var(--amberD)}.Printed,.pb2{background:var(--blueBg);color:var(--blue)}.Inwarded,.pg{background:var(--greenBg);color:var(--green)}.pr{background:var(--redBg);color:var(--red)}.pp{background:var(--purpleBg);color:var(--purple)}
+.fm{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line)}
+input,select{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-width:0}
+input:focus,select:focus,.btn:focus-visible,.ni:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+.msg{padding:11px 14px;border-radius:8px;margin-bottom:14px;font-size:13px;border-left:4px solid}
+.msg.ok{background:var(--greenBg);color:var(--green)}.msg.bad{background:var(--redBg);color:var(--red)}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:9px 12px;padding:16px 18px;font-size:13px}.kv span{color:var(--faint)}.kv b{font-weight:600}.big{font-size:22px;font-weight:800}.tg{display:flex;gap:6px;align-items:center;font-size:12.5px;font-weight:600;margin-left:auto}.tg input{accent-color:var(--amber)}
+.bar{height:8px;border-radius:5px;background:var(--bg);overflow:hidden;min-width:90px}.bar i{display:block;height:100%;background:var(--c,var(--amber))}
+.br{display:grid;grid-template-columns:130px 1fr 50px;gap:10px;align-items:center;margin-bottom:10px;font-size:12.5px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.tabs button{border:1px solid var(--line);background:var(--card);padding:7px 14px;border-radius:20px;font-weight:600;font-size:12.5px}
+.tabs button.on{background:var(--amber);border-color:var(--amber);color:#141B24}
+.api{font-size:11.5px;color:var(--faint)}
+dialog{border:0;border-radius:8px;background:var(--card);color:var(--text);padding:0;max-width:94vw}dialog::backdrop{background:rgba(20,27,36,.55)}
+.stk{width:330px;padding:0;background:#fff;color:#111}.Partial{background:var(--purpleBg);color:var(--purple)}.dlgw{width:600px;max-width:94vw}.mh{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line)}.mh b{font-size:17px}.mb{padding:18px 22px;display:grid;grid-template-columns:1fr 1fr;gap:14px}.mb label{display:block;font-size:12px;font-weight:600;color:var(--dim);margin-bottom:5px}.mb input,.mb select{width:100%}.mb .full{grid-column:1/-1}.mb .msg{margin:0}.mb input[readonly]{background:var(--bg)}.scanrow{display:flex;gap:10px;align-items:center}.ck{font-size:18px;width:24px;text-align:center;font-weight:700}.mf{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--line)}.btn:disabled{opacity:.45;cursor:default}.stk .scan-rule{margin-bottom:12px}.stk>div{padding:0 16px}.stk svg{width:100%;height:56px;margin:8px 0 2px}.stk svg rect{fill:#000}
+.stk table td{padding:3px 0;border:0;white-space:normal}.da{display:flex;gap:8px;padding:12px 16px 16px}
+@media print{body *{visibility:hidden}dialog,dialog *{visibility:visible}dialog{position:absolute;left:0;top:0}.da{display:none}}
+@media (max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:none}.main{margin-left:0}.mt{display:block}.sg{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}.ct{padding:16px 14px 50px}}
+
+/* ---- colourful animated theme ---- */
+body{background:radial-gradient(900px 420px at 88% -5%,rgba(232,163,61,.18),transparent 60%),radial-gradient(800px 500px at 0% 25%,rgba(46,107,166,.13),transparent 60%),radial-gradient(700px 500px at 100% 90%,rgba(107,79,163,.12),transparent 60%),var(--bg);background-attachment:fixed}
+.sb{background:linear-gradient(180deg,#1B2430 0%,#1f2d5a 62%,#2c2360 100%)}
+.mark{animation:glow 3s ease-in-out infinite}
+.ni svg{color:var(--ic,#B7C3D1);transition:transform .2s}.ni:hover svg{transform:scale(1.18) rotate(-4deg)}
+.ni.on{background:linear-gradient(90deg,rgba(255,255,255,.16),rgba(255,255,255,.03))}.ni.on::before{background:var(--ic,var(--amber));box-shadow:0 0 10px var(--ic,var(--amber))}
+.top{background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(8px)}
+.btn{transition:transform .15s,box-shadow .15s,background .15s}.btn:hover{transform:translateY(-1px)}
+.btn.a{background:linear-gradient(135deg,#F4B955,#E8A33D 55%,#C67F1F);border-color:transparent;box-shadow:0 3px 10px rgba(232,163,61,.35)}.btn.a:hover{box-shadow:0 6px 16px rgba(232,163,61,.5);color:#141B24}
+.btn.p{background:linear-gradient(135deg,#1B2430,#2E3F8F)}
+.panel{border-top:3px solid var(--acc,var(--amber));box-shadow:0 2px 12px rgba(20,27,36,.06);transition:box-shadow .2s}.panel:hover{box-shadow:0 6px 22px rgba(20,27,36,.1)}
+th{background:color-mix(in srgb,var(--acc,var(--amber)) 10%,var(--bg))}
+tbody tr{transition:background .15s}tbody tr:hover{background:color-mix(in srgb,var(--acc,var(--amber)) 8%,var(--card))}
+.sc{position:relative;overflow:hidden;border:0;color:#fff;background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 62%,#fff));box-shadow:0 6px 18px color-mix(in srgb,var(--c) 40%,transparent);transition:transform .2s}
+.sc:hover{transform:translateY(-4px)}.sc::after{content:'';position:absolute;right:-24px;bottom:-34px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.14)}
+.sc .sl,.sc .ss{color:rgba(255,255,255,.88)}.sc .si{background:rgba(255,255,255,.22);color:#fff}
+.bar i{animation:grow 1s ease-out both}
+.enter>*{animation:rise .5s cubic-bezier(.2,.8,.2,1) both}.enter>*:nth-child(2){animation-delay:.06s}.enter>*:nth-child(3){animation-delay:.12s}.enter>*:nth-child(4){animation-delay:.18s}.enter>*:nth-child(5){animation-delay:.24s}.enter>*:nth-child(6){animation-delay:.3s}
+.hero{border-radius:12px;padding:22px 24px;color:#fff;background:linear-gradient(120deg,#1B2430 0%,#2E6BA6 42%,#6B4FA3 72%,#C67F1F 115%);background-size:220% 220%;animation:flow 14s ease infinite;margin-bottom:18px}
+.hero h2{font-size:22px;font-weight:800}.hero p{opacity:.85;font-size:13px;margin:2px 0 16px}
+.qa{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.qa button{border:0;border-radius:10px;padding:12px 14px;color:#fff;font-weight:700;text-align:left;display:flex;gap:10px;align-items:center;background:var(--g);box-shadow:0 4px 12px rgba(0,0,0,.25);transition:transform .15s,box-shadow .15s}
+.qa button:hover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(0,0,0,.35)}.qa svg{width:20px;height:20px;flex-shrink:0}
+.flow{display:flex;gap:6px;align-items:stretch;margin-bottom:18px;flex-wrap:wrap}
+.fs{flex:1;min-width:118px;border-radius:10px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-bottom:4px solid var(--c);position:relative}
+.fs b{font-size:24px;display:block;color:var(--c);line-height:1.2}.fs span{font-size:11.5px;color:var(--faint);font-weight:600}
+.fs.live::after{content:'';position:absolute;top:11px;right:11px;width:8px;height:8px;border-radius:50%;background:var(--c);animation:pulse 1.6s infinite}
+.fa{align-self:center;color:var(--faint);font-weight:700;animation:nudge 1.4s ease-in-out infinite}
+.dn{display:flex;gap:22px;align-items:center;flex-wrap:wrap;padding:16px 18px}.dn svg{width:170px;height:170px;flex-shrink:0}
+.dn circle{fill:none;stroke-width:16;animation:seg 1.1s ease-out both}.dn .tk{stroke:var(--bg);animation:none}
+.dn text{fill:var(--text);font-weight:800;font-family:Inter,sans-serif}.dn .t2{font-size:9px;font-weight:600;fill:var(--faint)}
+.lg div{display:flex;gap:8px;align-items:center;font-size:12.5px;margin:7px 0}.lg i{width:11px;height:11px;border-radius:3px;background:var(--c)}.lg b{margin-left:auto;padding-left:14px}
+.bins{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:10px;padding:16px 18px}
+.bin{border-radius:10px;padding:10px 12px;background:color-mix(in srgb,var(--c) 13%,var(--card));border:1px solid color-mix(in srgb,var(--c) 40%,var(--line));transition:transform .15s}.bin:hover{transform:translateY(-3px) scale(1.02)}
+.bin b{font-size:12.5px;display:block}.bin span{font-size:11.5px;color:var(--dim)}.bin .bar{margin-top:7px;height:6px;min-width:0}.bin .bar i{background:var(--c)}
+.tl{padding:6px 18px 12px}.tl div{display:flex;gap:12px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13px}.tl div:last-child{border:0}
+.tl i{width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 22%,transparent);flex-shrink:0}.tl small{margin-left:auto;color:var(--faint);white-space:nowrap}
+dialog[open]{animation:pop .25s cubic-bezier(.2,.9,.3,1.15)}dialog[open]::backdrop{animation:fade .25s both;backdrop-filter:blur(3px)}
+.mh{background:linear-gradient(120deg,var(--mc1,#2E6BA6),var(--mc2,#6B4FA3));color:#fff;border:0}.mh .btn{background:rgba(255,255,255,.22);color:#fff;border:0}
+.mb>*{animation:rise .4s cubic-bezier(.2,.8,.2,1) both}.mb>*:nth-child(2){animation-delay:.04s}.mb>*:nth-child(3){animation-delay:.08s}.mb>*:nth-child(4){animation-delay:.12s}.mb>*:nth-child(5){animation-delay:.16s}.mb>*:nth-child(6){animation-delay:.2s}.mb>*:nth-child(7){animation-delay:.24s}
+.mb input,.mb select{transition:border-color .15s,box-shadow .2s}.mb input:focus,.mb select:focus{border-color:var(--amber);box-shadow:0 0 0 4px rgba(232,163,61,.25);outline:0}
+.ck{animation:tick .35s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}}
+@keyframes pop{from{opacity:0;transform:translateY(16px) scale(.95)}}
+@keyframes fade{from{opacity:0}}
+@keyframes grow{from{width:0}}
+@keyframes seg{from{stroke-dasharray:0 339.3}}
+@keyframes flow{0%,100%{background-position:0 50%}50%{background-position:100% 50%}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c) 55%,transparent)}70%,100%{box-shadow:0 0 0 9px transparent}}
+@keyframes nudge{50%{transform:translateX(4px)}}
+@keyframes glow{50%{box-shadow:0 0 16px rgba(232,163,61,.7)}}
+@keyframes tick{from{transform:scale(0) rotate(-40deg)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<aside class="sb" id="sb"><div class="brand"><div class="mark">WT</div><div><b>WareTrack WMS</b><small>GRN · Putaway · FIFO</small></div></div><div class="scan-rule"></div><div class="nv" id="nv"></div><div class="sf">SAP linked · Demo data</div></aside>
+<div class="main"><header class="top"><button class="mt" onclick="sb.classList.toggle('open')" aria-label="Menu">☰</button><div><h1 id="pt"></h1><small id="pc"></small></div><div class="user"><div class="av">WH</div><div><b style="font-size:12.8px">Warehouse User</b><small style="display:block;font-size:10.8px;color:var(--faint)">Stores</small></div></div></header><div class="scan-rule"></div><div class="ct" id="app"></div></div>
+<dialog id="dlg"></dialog>
+<script>
+const D=n=>new Date(Date.now()-n*864e5).toISOString();
+let mats=[{code:'M100',name:'Steel Bolt M8 (box)',uom:'BOX',zone:'A'},{code:'M200',name:'Hydraulic Oil 20L',uom:'DRM',zone:'B'},{code:'M300',name:'Bearing 6205',uom:'BOX',zone:'A'},{code:'M400',name:'Gasket Set',uom:'SET',zone:'C'}];
+let locs=[{code:'A-01-01',zone:'A',cap:800},{code:'A-01-02',zone:'A',cap:600},{code:'A-02-01',zone:'A',cap:600},{code:'B-01-01',zone:'B',cap:100},{code:'B-01-02',zone:'B',cap:100},{code:'C-01-01',zone:'C',cap:200}];
+const sapGRN=[{id:'5000101',po:'4500012',vendor:'Sundaram Fasteners',date:'2026-10-12',mat:'M100',qty:200,batch:'B2610A'},{id:'5000102',po:'4500013',vendor:'Castrol India',date:'2026-10-12',mat:'M200',qty:20,batch:'B2610B'},{id:'5000103',po:'4500014',vendor:'SKF India',date:'2026-10-13',mat:'M300',qty:150,batch:'B2610C'},{id:'5000104',po:'4500015',vendor:'Hindustan Gaskets',date:'2026-10-13',mat:'M400',qty:40,batch:'B2610D'},{id:'5000105',po:'4500016',vendor:'Sundaram Fasteners',date:'2026-10-13',mat:'M100',qty:300,batch:'B2610E'}];
+let grn=[];
+let emps=[{id:'E001',name:'Ravi Kumar',dept:'Stores',des:'Store Manager',ph:'98400 11001',on:true},{id:'E002',name:'Meena Selvam',dept:'Stores',des:'Store Keeper',ph:'98400 11002',on:true},{id:'E003',name:'Arun Prakash',dept:'Dispatch',des:'Forklift Operator',ph:'98400 11003',on:true},{id:'E004',name:'Divya Nair',dept:'Quality',des:'QC Inspector',ph:'98400 11004',on:true},{id:'E005',name:'Suresh Babu',dept:'Purchase',des:'Purchase Officer',ph:'98400 11005',on:false}];
+let users=[{u:'ravi.k',emp:'E001',role:'Admin',on:true,last:D(0)},{u:'meena.s',emp:'E002',role:'Store Keeper',on:true,last:D(1)},{u:'arun.p',emp:'E003',role:'Operator',on:true,last:D(2)},{u:'divya.n',emp:'E004',role:'Viewer',on:false,last:D(20)}];
+const DEPTS=['Stores','Dispatch','Quality','Purchase','IT'],ROLES=['Admin','Store Keeper','Operator','Viewer'];
+let stock=[{stk:'STK-4900001',mat:'M100',batch:'B2608X',qty:250,loc:'A-01-01',inAt:D(41),out:false},{stk:'STK-4900002',mat:'M100',batch:'B2609Y',qty:250,loc:'A-01-01',inAt:D(18),out:false},{stk:'STK-4900003',mat:'M300',batch:'B2609Z',qty:100,loc:'A-01-02',inAt:D(25),out:false},{stk:'STK-4900004',mat:'M200',batch:'B2609W',qty:20,loc:'B-01-01',inAt:D(30),out:false},{stk:'STK-4900005',mat:'M200',batch:'B2610V',qty:20,loc:'B-01-01',inAt:D(6),out:false},{stk:'STK-4900006',mat:'M400',batch:'B2610U',qty:40,loc:'C-01-01',inAt:D(9),out:false}];
+let lid=0;
+let log=stock.map(s=>({id:++lid,t:s.inAt,type:'IN',stk:s.stk,mat:s.mat,qty:s.qty,loc:s.loc,batch:s.batch,note:'Opening stock'}));
+let page='dash',rep='stock',issueMat='M100',msg=null;
+const IC={dash:'<rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>',box:'<path d="M21 8l-9-5-9 5v8l9 5 9-5z M3 8l9 5 9-5 M12 13v8"/>',pin:'<path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',inw:'<path d="M12 3v12 M7 10l5 5 5-5 M4 20h16"/>',out:'<path d="M12 21V9 M7 14l5-5 5 5 M4 4h16"/>',doc:'<path d="M6 3h9l4 4v14H6z M14 3v5h5"/>',clk:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',rep:'<path d="M4 20V10 M10 20V4 M16 20v-8 M22 20H2"/>',swap:'<path d="M7 7h13 M16 3l4 4-4 4 M17 17H4 M8 13l-4 4 4 4"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>'};
+const ic=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg>`;
+const NAV=[['Overview',[['dash','Dashboard','dash','Overview of warehouse operations']]],['Masters',[['mat','Material','box','Masters / Material'],['loc','Location','pin','Masters / Location'],['emp','Employee','user','Masters / Employee'],['usr','User','shield','Masters / User and role']]],['Transactions',[['grn','GRN and Sticker','doc','Transactions / GRN from SAP'],['in','Inward and Putaway','inw','Transactions / Inward scan'],['out','Outward FIFO','out','Transactions / Outward give out'],['tr','Location Transfer','swap','Transactions / Move stock between bins']]],['Reports',[['rep','All Reports','rep','Stock, FIFO, location and movement']]]];
+const $=s=>document.querySelector(s);
+const fmt=t=>new Date(t).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
+const days=t=>Math.floor((Date.now()-new Date(t))/864e5);
+const mn=c=>(mats.find(m=>m.code===c)||{}).name||c;
+const inStock=()=>stock.filter(s=>!s.out);
+const used=l=>inStock().filter(s=>s.loc===l).reduce((a,s)=>a+s.qty,0);
+const free=c=>{const l=locs.find(x=>x.code===c);return l?l.cap-used(c):0};
+const pend=g=>g.qty-(g.mapped||0);
+const pc=()=>grn.filter(g=>g.status!=='Open'&&pend(g)>0).length;
+const fifo=m=>inStock().filter(s=>s.mat===m).sort((a,b)=>new Date(a.inAt)-new Date(b.inAt));
+const pill=(c,t)=>`<span class="pill ${c}">${t}</span>`;
+const sp=s=>pill(s,s);
+function suggest(mat){const m=mats.find(x=>x.code===mat);const z=locs.filter(l=>l.zone===m.zone&&used(l.code)<l.cap);return z.find(l=>inStock().some(s=>s.loc===l.code&&s.mat===mat))||z[0]}
+function bars(s){let x=0,r='';for(const c of s){const n=c.charCodeAt(0);for(let i=0;i<4;i++){const w=((n>>i)&1)+1;if(i%2==0)r+=`<rect x="${x}" width="${w}" height="40"/>`;x+=w+1}}return `<svg viewBox="0 0 ${x} 40" preserveAspectRatio="none">${r}</svg>`}
+const setMsg=(t,k)=>msg={t,k};
+const msgHtml=()=>{const h=msg?`<div class="msg ${msg.k}">${msg.t}</div>`:'';msg=null;return h};
+const stat=(l,v,sub,c,cb,i)=>`<div class="sc" style="--c:${c}"><div class="t"><span class="sl">${l}</span><span class="si">${ic(i)}</span></div><div class="sv cu" data-v="${v}">${v}</div><div class="ss">${sub}</div></div>`;
+const panel=(h,sub,b,x='')=>`<div class="panel"><div class="ph"><div><h3>${h}</h3>${sub?`<div class="sub">${sub}</div>`:''}</div>${x}</div>${b}</div>`;
+const T=(h,rows,empty='No records.')=>rows.length?`<div class="tw"><table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr class="${r.nx?'nx':''}">${(r.c||r).map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:`<div class="pb" style="color:var(--faint)">${empty}</div>`;
+
+function fetchSAP(){grn=sapGRN.map(g=>({...g,status:'Open',stk:'STK-'+g.id.slice(-5)+'1'}));setMsg(`Fetched ${grn.length} GRN lines from SAP.`,'ok');render()}
+function printSticker(id){const g=grn.find(x=>x.id===id);if(g.status==='Open')g.status='Printed';
+ $('#dlg').innerHTML=`<div class="stk"><div class="scan-rule"></div><div><b style="font-size:16px">${g.stk}</b>${bars(g.stk)}<div class="mono" style="text-align:center">${g.stk}</div><table><tr><td>Material</td><td><b>${g.mat}</b> ${mn(g.mat)}</td></tr><tr><td>Qty</td><td>${g.qty}</td></tr><tr><td>Batch</td><td>${g.batch}</td></tr><tr><td>GRN / PO</td><td>${g.id} / ${g.po}</td></tr><tr><td>GRN date</td><td>${g.date}</td></tr></table></div></div><div class="da"><button class="btn a" onclick="print()">Print</button><button class="btn" onclick="dlg.close()">Close</button></div>`;
+ $('#dlg').showModal();render()}
+let M=null,lastPage='';
+const PCOL={dash:'#E8A33D',mat:'#2E6BA6',loc:'#0f9d9d',emp:'#6B4FA3',usr:'#C1443D',grn:'#E8A33D',in:'#2F6F4E',out:'#D9822B',tr:'#2E6BA6',rep:'#6B4FA3'};
+const MC={in:['#2F6F4E','#0f9d9d'],out:['#E8A33D','#C1443D'],tr:['#2E6BA6','#6B4FA3']};
+function countUp(){if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches)return;document.querySelectorAll('.cu').forEach(el=>{const v=+el.dataset.v;if(!isFinite(v))return;const t0=performance.now();(function f(t){const p=Math.min(1,(t-t0)/900);el.textContent=Math.round(v*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f)})(t0)})}
+const now=()=>new Date().toISOString();
+const TREASONS=['Stock consolidation','Bin full or damaged','Wrong bin earlier','Reorganising zone','Other'];
+const REASONS=['Wrong sticker scanned','Wrong location','Wrong quantity','Entered by mistake','Other'];
+const byAge=(a,b)=>new Date(a.inAt)-new Date(b.inAt);
+function addRec(stk,mat,batch,q,loc,inAt){const e=stock.find(x=>x.stk===stk&&x.loc===loc);
+ if(e){e.qty+=q;if(new Date(inAt)<new Date(e.inAt))e.inAt=inAt}else stock.push({stk,mat,batch,qty:q,loc,inAt,out:false})}
+function lookup(raw){const c=raw.trim().toUpperCase();M.code=c;M.ok=false;M.err='';M.g=null;M.recs=[];if(!c)return;
+ if(M.kind==='in'){const g=grn.find(x=>x.stk===c);
+  if(!g){M.err='Sticker not found in the fetched GRN data.';return}
+  if(g.status==='Open'){M.err='Sticker is not printed yet. Print and paste it first.';return}
+  if(pend(g)<=0){M.err='This sticker is fully inwarded.';return}
+  const l=suggest(g.mat);M.g=g;M.ok=true;M.loc=l?l.code:'';M.qty=l?Math.min(pend(g),free(l.code)):''}
+ else{const r=stock.filter(x=>x.stk===c&&x.qty>0).sort(byAge);
+  if(!r.length){M.err='This sticker has no stock in the warehouse.';return}
+  M.recs=r;M.ok=true;M.loc=r[0].loc;M.qty=r[0].qty}}
+function openM(kind,code,loc){M={kind,code:'',ok:false,loc:'',to:'',qty:'',why:TREASONS[0],err:'',g:null,recs:[]};
+ if(code){lookup(code);const r=M.recs.find(x=>x.loc===loc);if(r){M.loc=r.loc;M.qty=r.qty}}
+ drawM();$('#dlg').showModal();setTimeout(()=>{const e=$('#mb');if(e&&!M.ok)e.focus()},50)}
+function mScan(v,force){const c=v.trim().toUpperCase(),hit=M.kind==='in'?grn.some(g=>g.stk===c):stock.some(x=>x.stk===c&&x.qty>0);
+ if(hit||force){lookup(c);drawM();const e=$('#mb');if(e){e.focus();e.setSelectionRange(c.length,c.length)}}else{M.code=c;M.ok=false}}
+function mLoc(v){v=v.trim().toUpperCase();M.loc=v;M.err='';
+ if(M.kind==='in'){const l=locs.find(x=>x.code===v);if(l)M.qty=Math.min(pend(M.g),free(v));else M.err=v?v+' is not in the location master.':''}
+ else{const r=M.recs.find(x=>x.loc===v);M.qty=r?r.qty:''}
+ drawM()}
+function drawM(){const k=M.kind,g=M.g,rec=M.recs.find(r=>r.loc===M.loc),src=g||rec,m=src?mats.find(x=>x.code===src.mat):null;
+ const ttl={in:['Map Stock to Location','Confirm Mapping'],out:['Give Out Stock','Give Out'],tr:['Change Location','Confirm Transfer']}[k];
+ const dopt=ex=>locs.filter(l=>free(l.code)>0&&l.code!==ex).sort((a,b)=>(m&&b.zone===m.zone)-(m&&a.zone===m.zone)).map(l=>`<option value="${l.code}">${l.code} — Zone ${l.zone} (Available: ${free(l.code)})</option>`).join('');
+ let dis=!M.ok,hint='';
+ if(k==='out'&&rec){const f=fifo(rec.mat)[0];if(f.stk!==rec.stk||f.loc!==rec.loc){dis=true;hint=`<div class="msg bad full">FIFO: older stock of ${rec.mat} exists. Take <b>${f.stk}</b> from <b>${f.loc}</b> (${days(f.inAt)} days old) first.</div>`}else hint=`<div class="msg ok full">FIFO OK. This is the oldest stock of ${rec.mat}.</div>`}
+ const fromSel=`<select onchange="mLoc(this.value)">${M.recs.map(r=>`<option value="${r.loc}" ${r.loc===M.loc?'selected':''}>${r.loc} — Zone ${(locs.find(l=>l.code===r.loc)||{}).zone} (Available: ${r.qty})</option>`).join('')}</select>`;
+ const locIn=`<input list="bl" class="mono" value="${M.loc}" placeholder="Select or scan bin" onchange="mLoc(this.value)"><datalist id="bl">${dopt('')}</datalist>`;
+ const toIn=`<input list="bl2" class="mono" value="${M.to}" placeholder="Select or scan bin" onchange="M.to=this.value.trim().toUpperCase()"><datalist id="bl2">${dopt(M.loc)}</datalist>`;
+ const ck=M.ok?'<span class="ck" style="color:var(--green)">✓</span>':M.err?'<span class="ck" style="color:var(--red)">✕</span>':'<span class="ck"></span>';
+ $('#dlg').innerHTML=`<div class="dlgw" style="--mc1:${MC[k][0]};--mc2:${MC[k][1]}"><div class="mh"><b>${ttl[0]}</b><button class="btn s" onclick="dlg.close()" aria-label="Close">✕</button></div><div class="mb">
+ <div class="full"><label>Scan Material Barcode</label><div class="scanrow"><input id="mb" class="mono" style="flex:1" value="${M.code}" placeholder="Scan sticker barcode" oninput="mScan(this.value)" onkeydown="if(event.key==='Enter')mScan(this.value,1)">${ck}</div></div>
+ ${M.err?`<div class="msg bad full">${M.err}</div>`:''}
+ <div><label>Material</label><input readonly value="${m?m.name:''}"></div><div><label>Batch</label><input readonly class="mono" value="${src?src.batch:''}"></div>
+ <div class="full"><label>${k==='in'?'Select / Scan Location':k==='tr'?'From Location':'Take From Location'}</label>${k==='in'?locIn:fromSel}</div>
+ ${k==='tr'?`<div class="full"><label>To Location</label>${toIn}</div>`:''}
+ <div><label>${{in:'Quantity to Map',out:'Quantity to Give Out',tr:'Quantity to Move'}[k]}</label><input type="number" min="1" value="${M.qty}" oninput="M.qty=this.value"></div>
+ <div><label>${k==='in'?'Received Qty':'Available Qty'}</label><input readonly value="${g?g.qty:rec?rec.qty:''}"></div>
+ ${k==='in'&&g?`<div class="full api">Mapped so far ${g.mapped||0} of ${g.qty}. Pending ${pend(g)}. You can map part now and the rest to another bin.</div>`:''}
+ ${k==='tr'?`<div class="full"><label>Reason</label><select onchange="M.why=this.value">${TREASONS.map(r=>`<option ${r===M.why?'selected':''}>${r}</option>`).join('')}</select></div>`:''}
+ ${hint}</div><div class="mf"><button class="btn" onclick="dlg.close()">Cancel</button><button class="btn a" onclick="mConfirm()" ${dis?'disabled':''}>${ttl[1]}</button></div></div>`}
+const fail=t=>{M.err=t;drawM()};
+function done(t){$('#dlg').close();M=null;setMsg(t,'ok');render()}
+function mConfirm(){const k=M.kind,q=+M.qty;
+ if(!M.ok)return fail(M.err||'Scan a sticker barcode first.');
+ if(!(q>0)||q%1)return fail('Enter a whole quantity greater than zero.');
+ if(k==='in'){const g=M.g,l=locs.find(x=>x.code===M.loc),u=mats.find(x=>x.code===g.mat).uom;
+  if(!l)return fail('Select a location from the master.');
+  if(q>pend(g))return fail(`Quantity cannot exceed the pending ${pend(g)}.`);
+  if(q>free(l.code))return fail(`${l.code} has only ${free(l.code)} available.`);
+  addRec(g.stk,g.mat,g.batch,q,l.code,now());g.mapped=(g.mapped||0)+q;g.status=pend(g)>0?'Partial':'Inwarded';
+  log.push({id:++lid,t:now(),type:'IN',stk:g.stk,mat:g.mat,qty:q,loc:l.code,batch:g.batch,note:'Mapped to location'});
+  return done(`${q} ${u} of ${g.mat} mapped to <b>${l.code}</b>.${pend(g)>0?` ${pend(g)} still pending.`:' Sticker fully inwarded.'}`)}
+ const rec=M.recs.find(r=>r.loc===M.loc);if(!rec)return fail('Select the location to take stock from.');
+ if(q>rec.qty)return fail(`Only ${rec.qty} available at ${rec.loc}.`);
+ const u=mats.find(x=>x.code===rec.mat).uom;
+ if(k==='out'){const f=fifo(rec.mat)[0];if(f.stk!==rec.stk||f.loc!==rec.loc)return fail('FIFO violation. Older stock must go first.');
+  log.push({id:++lid,t:now(),type:'OUT',stk:rec.stk,mat:rec.mat,qty:q,loc:rec.loc,batch:rec.batch,inAt:rec.inAt,note:'FIFO give out'});
+  rec.qty-=q;if(!rec.qty)stock.splice(stock.indexOf(rec),1);
+  return done(`${q} ${u} of ${rec.mat} given out from <b>${rec.loc}</b>.`)}
+ const l=locs.find(x=>x.code===M.to);
+ if(!l)return fail('Select or scan a destination bin from the master.');
+ if(l.code===rec.loc)return fail('Destination is the same as the current bin.');
+ if(q>free(l.code))return fail(`${l.code} has only ${free(l.code)} available.`);
+ const from=rec.loc,inAt=rec.inAt;rec.qty-=q;if(!rec.qty)stock.splice(stock.indexOf(rec),1);
+ addRec(rec.stk,rec.mat,rec.batch,q,l.code,inAt);
+ log.push({id:++lid,t:now(),type:'MOVE',stk:rec.stk,mat:rec.mat,qty:q,loc:l.code,batch:rec.batch,note:`Transferred ${from} to ${l.code} (${M.why})`});
+ done(`${q} ${u} of ${rec.mat} moved from <b>${from}</b> to <b>${l.code}</b>.`)}
+function askVoid(kind,id){const t=kind==='in'?'Delete inward':'Undo give out',e=log.find(l=>l.id===id),x=kind==='in'?`This removes ${e.qty} from ${e.loc} and returns it to the pending quantity of ${e.stk}.`:`This puts ${e.qty} of ${e.stk} back at ${e.loc} with its original FIFO date.`;
+ $('#dlg').innerHTML=`<div class="stk"><div class="scan-rule"></div><div style="padding-bottom:6px"><b style="font-size:16px">${t}</b><p style="font-size:13px;margin:8px 0">${x}</p><select id="vr" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#111">${REASONS.map(r=>`<option>${r}</option>`).join('')}</select></div></div><div class="da"><button class="btn a" onclick="doVoid('${kind}',${id})">${t}</button><button class="btn" onclick="dlg.close()">Cancel</button></div>`;$('#dlg').showModal()}
+function doVoid(kind,id){const why=$('#vr').value,e=log.find(l=>l.id===id);dlg.close();
+ if(kind==='in'){const r=stock.find(x=>x.stk===e.stk&&x.loc===e.loc);
+  if(!r||r.qty<e.qty)return setMsg(`Cannot delete. ${e.qty} of ${e.stk} is no longer at ${e.loc} (given out or moved). Undo that first.`,'bad'),render();
+  r.qty-=e.qty;if(!r.qty)stock.splice(stock.indexOf(r),1);
+  const g=grn.find(x=>x.stk===e.stk);if(g){g.mapped-=e.qty;g.status=g.mapped>0?'Partial':'Printed'}
+  e.void=true;log.push({id:++lid,t:now(),type:'DEL-IN',stk:e.stk,mat:e.mat,qty:e.qty,loc:e.loc,note:'Deleted: '+why});
+  setMsg(`Inward of ${e.qty} for ${e.stk} deleted (${why}).`,'ok')}
+ else{if(free(e.loc)<e.qty)return setMsg(`${e.loc} has only ${free(e.loc)} free, so ${e.qty} cannot go back. Free the bin first.`,'bad'),render();
+  addRec(e.stk,e.mat,e.batch,e.qty,e.loc,e.inAt);e.void=true;
+  log.push({id:++lid,t:now(),type:'UNDO-OUT',stk:e.stk,mat:e.mat,qty:e.qty,loc:e.loc,note:'Undone: '+why});
+  setMsg(`Give out of ${e.qty} for ${e.stk} undone (${why}). Stock is back at ${e.loc}.`,'ok')}
+ render()}
+function addMat(){const v=i=>$('#'+i).value.trim();if(!v('mc')||!v('mnm'))return;mats.push({code:v('mc').toUpperCase(),name:v('mnm'),uom:v('mu')||'EA',zone:v('mz')});setMsg('Material added.','ok');render()}
+function addLoc(){const c=$('#lc').value.trim().toUpperCase();if(!c)return;locs.push({code:c,zone:$('#lz').value,cap:+$('#lcap').value||1});setMsg('Location added.','ok');render()}
+const en=id=>(emps.find(e=>e.id===id)||{}).name||id;
+function addEmp(){const v=i=>$('#'+i).value.trim();if(!v('en'))return setMsg('Enter the employee name.','bad'),render();emps.push({id:'E'+String(emps.length+1).padStart(3,'0'),name:v('en'),dept:$('#ed').value,des:v('eds')||'-',ph:v('eph')||'-',on:true});setMsg('Employee added.','ok');render()}
+function addUser(){const u=$('#uu').value.trim().toLowerCase(),e=$('#ue').value;if(!u||!e)return setMsg('Enter a username and pick an employee.','bad'),render();if(users.some(x=>x.u===u))return setMsg(`Username ${u} already exists.`,'bad'),render();users.push({u,emp:e,role:$('#ur').value,on:true,last:null});setMsg(`User ${u} created as ${$('#ur').value}.`,'ok');render()}
+function togEmp(id){const e=emps.find(x=>x.id===id);e.on=!e.on;if(!e.on)users.filter(x=>x.emp===id).forEach(x=>x.on=false);render()}
+function togUser(u){const x=users.find(y=>y.u===u),e=emps.find(z=>z.id===x.emp);if(!x.on&&!e.on)return setMsg(`${e.name} is inactive. Activate the employee first.`,'bad'),render();x.on=!x.on;render()}
+const zsel=id=>`<select id="${id}">${[...new Set(locs.map(l=>l.zone).concat(mats.map(m=>m.zone)))].map(z=>`<option>${z}</option>`).join('')}</select>`;
+
+const V={
+dash(){const q=inStock(),qty=q.reduce((a,x)=>a+x.qty,0),outs=log.filter(l=>l.type==='OUT'&&!l.void),cols=['#2E6BA6','#E8A33D','#2F6F4E','#6B4FA3','#C1443D','#0f9d9d'];
+ const tot=mats.map((m,i)=>({m,v:fifo(m.code).reduce((a,x)=>a+x.qty,0),c:cols[i%6]})),sum=tot.reduce((a,x)=>a+x.v,0)||1;let acc=0;
+ const seg=tot.filter(x=>x.v>0).map(x=>{const len=x.v/sum*339.3,e=`<circle cx="70" cy="70" r="54" stroke="${x.c}" stroke-dasharray="${Math.max(len-2,1)} ${339.3}" stroke-dashoffset="${-acc}" transform="rotate(-90 70 70)"/>`;acc+=len;return e}).join('');
+ const act=log.filter(l=>!l.void).slice(-6).reverse(),tc={IN:'#2F6F4E',OUT:'#E8A33D',MOVE:'#2E6BA6','DEL-IN':'#C1443D','UNDO-OUT':'#C1443D'};
+ const pipe=[['GRN lines',grn.length,'#2E6BA6'],['Stickers printed',grn.filter(g=>g.status!=='Open').length,'#6B4FA3'],['Pending inward',pc(),'#E8A33D'],['In stock',q.length,'#2F6F4E'],['Given out',outs.length,'#C1443D']];
+ const hero=`<div class="hero"><h2>Warehouse control room</h2><p>${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}. ${pc()} sticker${pc()===1?'':'s'} waiting to be mapped, ${q.length} in stock.</p><div class="qa">`
+  +[['Fetch GRN from SAP','doc','linear-gradient(135deg,#2E6BA6,#4f8fd6)',"page='grn';fetchSAP()"],['Map stock to location','inw','linear-gradient(135deg,#2F6F4E,#2bb38a)',"page='in';render();openM('in')"],['Give out stock','out','linear-gradient(135deg,#E8A33D,#d9622b)',"page='out';render();openM('out')"],['Change location','swap','linear-gradient(135deg,#6B4FA3,#b05fc4)',"page='tr';render();openM('tr')"]].map(([t,i,g,f])=>`<button style="--g:${g}" onclick="${f}">${ic(i)}${t}</button>`).join('')+`</div></div>`;
+ return hero
+ +`<div class="sg">${stat('Stickers in stock',q.length,'In '+new Set(q.map(x=>x.loc)).size+' bins','#2E6BA6','','box')+stat('Qty on hand',qty,tot.length+' materials','#2F6F4E','','dash')+stat('Awaiting inward',pc(),'Printed, not fully mapped','#C67F1F','','inw')+stat('Given out',outs.reduce((a,x)=>a+x.qty,0),outs.length+' FIFO issues','#6B4FA3','','out')}</div>`
+ +`<div class="flow">${pipe.map(([l,v,c],i)=>`${i?'<span class="fa">›</span>':''}<div class="fs ${v?'live':''}" style="--c:${c}"><b class="cu" data-v="${v}">${v}</b><span>${l}</span></div>`).join('')}</div>`
+ +`<div class="g2">${panel('Stock by material','Share of quantity on hand',`<div class="dn"><svg viewBox="0 0 140 140"><circle class="tk" cx="70" cy="70" r="54"/>${seg}<text x="70" y="68" text-anchor="middle" font-size="22">${qty}</text><text class="t2" x="70" y="84" text-anchor="middle">units in stock</text></svg><div class="lg" style="flex:1;min-width:150px">${tot.map(x=>`<div style="--c:${x.c}"><i></i>${x.m.name}<b>${x.v}</b></div>`).join('')}</div></div>`)}
+ ${panel('Bin heat map','Fill level of every location',`<div class="bins">${locs.map(l=>{const u=used(l.code),pc_=Math.min(100,u/l.cap*100),c=pc_>=90?'#C1443D':pc_>=60?'#E8A33D':'#2F6F4E';return `<div class="bin" style="--c:${c}"><b class="mono">${l.code}</b><span>${u} of ${l.cap} · ${Math.round(pc_)}%</span><div class="bar"><i style="width:${pc_}%"></i></div></div>`}).join('')}</div>`)}</div>`
+ +`<div class="g2">${panel('Live activity','Latest stock movements',`<div class="tl">${act.map(l=>`<div style="--c:${tc[l.type]||'#8A97A6'}"><i></i><span><b>${l.type}</b> ${l.qty} × ${l.mat} <span class="mono">${l.loc}</span></span><small>${fmt(l.t)}</small></div>`).join('')}</div>`)}
+ ${panel('Next FIFO picks','Oldest sticker per material',T(['Item','Sticker','Bin','Qty','Age'],mats.map(m=>fifo(m.code)[0]).filter(Boolean).map(x=>[`${x.mat} ${mn(x.mat)}`,`<span class="mono">${x.stk}</span>`,x.loc,x.qty,pill(days(x.inAt)>30?'pr':days(x.inAt)>14?'pa':'pg',days(x.inAt)+' days')])))}</div>`},
+mat(){return panel('Material master','Each material has a putaway zone used by inward',`<div class="fm"><input id="mc" placeholder="Code" size="7"><input id="mnm" placeholder="Name"><input id="mu" placeholder="UoM" size="5">${zsel('mz')}<button class="btn a" onclick="addMat()">Add material</button></div>`+T(['Code','Name','UoM','Putaway zone'],mats.map(m=>[`<span class="mono">${m.code}</span>`,m.name,m.uom,pill('pp','Zone '+m.zone)])))},
+loc(){return panel('Location master','Capacity is the quantity a bin can hold',`<div class="fm"><input id="lc" placeholder="e.g. A-03-01" size="11">${zsel('lz')}<input id="lcap" type="number" min="1" value="500" style="width:80px"><button class="btn a" onclick="addLoc()">Add location</button></div>`+T(['Location','Zone','Capacity','Used','Free','Fill'],locs.map(l=>{const p=used(l.code)/l.cap*100;return [`<span class="mono">${l.code}</span>`,pill('pp','Zone '+l.zone),l.cap,used(l.code),l.cap-used(l.code),`<div class="bar" style="--c:${p>=100?'var(--red)':'var(--green)'}"><i style="width:${p}%"></i></div>`]})))},
+emp(){return panel('Employee master','Warehouse staff. Users are created from these records',`<div class="fm"><input id="en" placeholder="Employee name"><select id="ed">${DEPTS.map(d=>`<option>${d}</option>`).join('')}</select><input id="eds" placeholder="Designation"><input id="eph" placeholder="Phone" size="12"><button class="btn a" onclick="addEmp()">Add employee</button></div>`+T(['ID','Name','Department','Designation','Phone','Status',''],emps.map(e=>[`<span class="mono">${e.id}</span>`,e.name,e.dept,e.des,e.ph,pill(e.on?'pg':'pr',e.on?'Active':'Inactive'),`<button class="btn s" onclick="togEmp('${e.id}')">${e.on?'Deactivate':'Activate'}</button>`])))},
+usr(){const act=emps.filter(e=>e.on);return panel('User master','Login and role for each employee. Deactivating an employee also locks their user',`<div class="fm"><input id="uu" placeholder="Username" size="14"><select id="ue"><option value="">Select employee</option>${act.map(e=>`<option value="${e.id}">${e.name} (${e.id})</option>`).join('')}</select><select id="ur">${ROLES.map(r=>`<option>${r}</option>`).join('')}</select><button class="btn a" onclick="addUser()">Add user</button></div>`+T(['Username','Employee','Department','Role','Last login','Status',''],users.map(x=>[`<span class="mono">${x.u}</span>`,en(x.emp),(emps.find(e=>e.id===x.emp)||{}).dept,pill({Admin:'pp','Store Keeper':'pb2',Operator:'pa',Viewer:'pg'}[x.role],x.role),x.last?fmt(x.last):'Never',pill(x.on?'pg':'pr',x.on?'Active':'Locked'),`<button class="btn s" onclick="togUser('${x.u}')">${x.on?'Lock':'Unlock'}</button>`]))+`<div class="pb" style="border-top:1px solid var(--line)"><h3 style="font-size:13px;margin-bottom:8px">What each role can do</h3>${T(['Role','Master','GRN and sticker','Inward','Outward','Reports'],[['Admin','Edit','Yes','Yes','Yes','Yes'],['Store Keeper','View','Yes','Yes','Yes','Yes'],['Operator','No','No','Yes','Yes','No'],['Viewer','View','No','No','No','Yes']])}</div>`)},
+grn(){return panel('GRN from SAP','Fetch receipts, then print a sticker per line to paste on the product',`<div class="fm"><button class="btn p" onclick="fetchSAP()">${ic('doc')} Fetch GRN from SAP</button><span class="api mono">GET /sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentItem</span></div>`+T(['GRN','PO','Vendor','Date','Material','Qty','Batch','Sticker','Status',''],grn.map(g=>[g.id,g.po,g.vendor,g.date,`${g.mat} ${mn(g.mat)}`,g.qty,g.batch,`<span class="mono">${g.stk}</span>`,sp(g.status),`<button class="btn s" onclick="printSticker('${g.id}')">${ic('doc')} ${g.status==='Open'?'Print sticker':'Reprint'}</button>`]),'No GRN loaded. Select Fetch GRN from SAP.'))},
+in(){const p=grn.filter(g=>g.status!=='Open'&&pend(g)>0),rec=log.filter(l=>l.type==='IN'&&!l.void&&l.note!=='Opening stock').slice(-8).reverse();
+ return panel('Map stock to location','Scan the sticker, check the item, choose a bin and confirm the quantity',`<div class="fm"><button class="btn a" onclick="openM('in')">${ic('inw')} Map stock to location</button><span class="api">Part of a GRN line can go to one bin and the rest to another.</span></div>`+T(['Sticker','Item','Batch','GRN qty','Mapped','Pending','Suggested bin','Status',''],p.map(g=>{const l=suggest(g.mat);return [`<span class="mono">${g.stk}</span>`,`${g.mat} ${mn(g.mat)}`,g.batch,g.qty,g.mapped||0,pend(g),l?pill('pg',l.code):pill('pr','No free bin'),sp(g.status),`<button class="btn s" onclick="openM('in','${g.stk}')">Map</button>`]}),'Nothing pending. Fetch GRN and print stickers on the GRN page.'))
+ +panel('Recent inward','Saved mappings',T(['Time','Sticker','Item','Qty','Location','Note',''],rec.map(l=>[fmt(l.t),`<span class="mono">${l.stk}</span>`,`${l.mat} ${mn(l.mat)}`,l.qty,l.loc,l.note,`<button class="btn s" onclick="askVoid('in',${l.id})">Delete</button>`]),'No inward entries yet.'))},
+out(){const q=mats.flatMap(m=>fifo(m.code).map((r,i)=>({r,i}))),rec=log.filter(l=>l.type==='OUT'&&!l.void).slice(-8).reverse();
+ return panel('Give out stock','FIFO. The oldest stock of each item goes first',`<div class="fm"><button class="btn a" onclick="openM('out')">${ic('out')} Give out stock</button></div>`+T(['Pick order','Sticker','Item','Batch','Qty','Location','Age',''],q.map(({r,i})=>({nx:!i,c:[i?i+1:pill('pa','Next'),`<span class="mono">${r.stk}</span>`,`${r.mat} ${mn(r.mat)}`,r.batch,r.qty,r.loc,days(r.inAt)+' d',`<button class="btn s" onclick="openM('out','${r.stk}','${r.loc}')">Give out</button>`]})),'No stock in the warehouse.'))
+ +panel('Recent give outs','',T(['Time','Sticker','Item','Qty','From location',''],rec.map(l=>[fmt(l.t),`<span class="mono">${l.stk}</span>`,`${l.mat} ${mn(l.mat)}`,l.qty,l.loc,`<button class="btn s" onclick="askVoid('out',${l.id})">Undo</button>`]),'Nothing given out yet.'))},
+tr(){const q=[...inStock()].sort((a,b)=>a.mat.localeCompare(b.mat)||byAge(a,b)),rec=log.filter(l=>l.type==='MOVE'&&!l.void&&l.note.startsWith('Transferred')).slice(-8).reverse();
+ return panel('Change location','Move stock, or part of it, from one bin to another. The FIFO date stays the same',`<div class="fm"><button class="btn a" onclick="openM('tr')">${ic('out')} Change location</button></div>`+T(['Sticker','Item','Batch','Qty','Location','Age',''],q.map(r=>[`<span class="mono">${r.stk}</span>`,`${r.mat} ${mn(r.mat)}`,r.batch,r.qty,pill('pb2',r.loc),days(r.inAt)+' d',`<button class="btn s" onclick="openM('tr','${r.stk}','${r.loc}')">Change</button>`]),'No stock.'))
+ +panel('Recent transfers','',T(['Time','Sticker','Item','Qty','Now at','Details'],rec.map(l=>[fmt(l.t),`<span class="mono">${l.stk}</span>`,`${l.mat} ${mn(l.mat)}`,l.qty,l.loc,l.note]),'No transfers yet.'))},
+rep(){let b='';
+ if(rep==='stock')b=T(['Material','Name','Stickers','Qty','Locations'],mats.map(m=>{const q=fifo(m.code);return [m.code,m.name,q.length,q.reduce((a,s)=>a+s.qty,0),[...new Set(q.map(s=>s.loc))].join(', ')||'-']}));
+ if(rep==='fifo')b=T(['Material','Sticker','Batch','Qty','Location','Inward','Age','Pick order'],mats.flatMap(m=>fifo(m.code).map((s,i)=>[m.code,`<span class="mono">${s.stk}</span>`,s.batch,s.qty,s.loc,fmt(s.inAt),pill(days(s.inAt)>30?'pr':days(s.inAt)>14?'pa':'pg',days(s.inAt)+' d'),i+1])));
+ if(rep==='loc')b=T(['Location','Zone','Capacity','Used','Stickers held'],locs.map(l=>[`<span class="mono">${l.code}</span>`,l.zone,l.cap,used(l.code),inStock().filter(s=>s.loc===l.code).map(s=>s.stk).join(', ')||'Empty']));
+ if(rep==='mv')b=T(['Time','Type','Sticker','Material','Qty','Location','Note'],[...log].reverse().map(l=>[fmt(l.t),pill(l.type==='IN'?'pg':l.type==='MOVE'?'pb2':l.type==='OUT'?'pa':'pr',l.type),`<span class="mono">${l.stk}</span>`,l.mat,l.qty,l.loc,l.note+(l.void?' (deleted)':'')]));
+ if(rep==='grn')b=T(['GRN','PO','Vendor','Material','Qty','Sticker','Status'],grn.map(g=>[g.id,g.po,g.vendor,g.mat,g.qty,`<span class="mono">${g.stk}</span>`,sp(g.status)]),'Fetch GRN data on the GRN page first.');
+ return `<div class="tabs">${[['stock','Stock summary'],['fifo','FIFO ageing'],['loc','Location utilisation'],['mv','Movement log'],['grn','GRN status']].map(([k,l])=>`<button class="${rep===k?'on':''}" onclick="rep='${k}';render()">${l}</button>`).join('')}</div>`+panel(({stock:'Stock summary',fifo:'FIFO ageing',loc:'Location utilisation',mv:'Movement log',grn:'GRN status'})[rep],'',b)}};
+
+function render(){
+ $('#nv').innerHTML=NAV.map(([g,it])=>`<div class="gl">${g.toUpperCase()}</div>`+it.map(([id,l,i])=>`<button class="ni ${page===id?'on':''}" style="--ic:${PCOL[id]}" onclick="page='${id}';sb.classList.remove('open');render()">${ic(i)}${l}${id==='in'&&pc()?`<span class="bd">${pc()}</span>`:''}</button>`).join('')).join('');
+ const cur=NAV.flatMap(g=>g[1]).find(x=>x[0]===page);$('#pt').textContent=cur[1];$('#pc').textContent=cur[3];
+ const ch=page!==lastPage;lastPage=page;const app=$('#app');app.className='ct'+(ch?' enter':'');app.style.setProperty('--acc',PCOL[page]);app.innerHTML=msgHtml()+V[page]();if(ch)countUp()}
+render();
+</script>
+</body>
+</html>

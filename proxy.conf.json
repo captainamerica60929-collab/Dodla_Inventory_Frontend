@@ -1,0 +1,8 @@
+{
+  "/api": {
+    "target": "https://dodladairyapi.genuineitsolution.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}
